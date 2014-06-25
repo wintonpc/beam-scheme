@@ -1,0 +1,14 @@
+{application, bs,
+ [
+  {description, "beam-scheme"},
+  {vsn, "1"},
+  {modules, [
+             bs_read
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
