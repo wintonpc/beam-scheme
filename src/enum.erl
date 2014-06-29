@@ -1,11 +1,8 @@
 -module(enum).
--export([make_enum/1, yield/1, next/1, done/0, to_list/1, from_list/1]).
+-export([make/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
 -include_lib("eunit/include/eunit.hrl").
 
-make_enum(G) -> {enum, spawn(fun() ->
-                                     G(),
-                                    yield('ENUM_DONE')
-                             end)}.
+make(G) -> {enum, spawn(fun() -> G(), yield('ENUM_DONE') end)}.
 
 yield(V) ->
     receive
@@ -35,7 +32,7 @@ to_list(E, Acc) ->
     end.
 
 from_list(List) ->
-    make_enum(fun() -> gen_from_list(List) end).
+    make(fun() -> gen_from_list(List) end).
 
 gen_from_list(List) ->
     case List of
@@ -44,13 +41,31 @@ gen_from_list(List) ->
                  gen_from_list(T)
     end.
 
+map(E, F) ->
+    make(fun() -> walk(E, fun(V) -> yield(F(V)) end) end).
 
+filter(E, Pred) ->
+    make(fun() ->
+                      walk(E, fun(V) -> case Pred(V) of
+                                            true -> yield(V);
+                                            false -> ok
+                                        end
+                              end)
+              end).
+
+walk(E, F) ->
+    case next(E) of
+        'ENUM_DONE' -> 'ENUM_DONE';
+        V -> F(V),
+             walk(E, F)
+    end.
+    
 
 %%% TESTS %%%
 
 %% naturals
 
-naturals() -> make_enum(fun gen_naturals/0).
+naturals() -> make(fun gen_naturals/0).
 
 gen_naturals() -> gen_naturals(1).
 gen_naturals(N) ->
@@ -60,7 +75,7 @@ gen_naturals(N) ->
 
 %% fib
 
-fib() -> make_enum(fun gen_fib/0).
+fib() -> make(fun gen_fib/0).
 
 gen_fib() ->
     yield(0),
@@ -74,7 +89,7 @@ gen_fib(A, B) ->
 
 %% squares
 
-squares(E) -> make_enum(fun() -> gen_squares(E) end).
+squares(E) -> make(fun() -> gen_squares(E) end).
 
 square(X) -> X * X.
 
@@ -85,7 +100,7 @@ gen_squares(E) ->
 
 %% four
 
-four() -> make_enum(fun() -> yield(1), yield(2), yield(3), yield(4) end).
+four() -> make(fun() -> yield(1), yield(2), yield(3), yield(4) end).
 
 
 %% tests
@@ -139,8 +154,19 @@ from_list_test_() ->
     ].
 
 empty_enum_test_() ->
-    MakeEmpty = fun() -> make_enum(fun() -> ok end) end,
+    MakeEmpty = fun() -> make(fun() -> ok end) end,
     [
      ?_assertEqual([], to_list(MakeEmpty())),
      ?_assertEqual(done(), next(MakeEmpty()))
+    ].
+
+map_test_() ->
+    [
+     ?_assertEqual([1,4,9,16], to_list(map(four(), fun square/1)))
+    ].
+
+filter_test_() ->
+    Even = fun(X) -> X rem 2 == 0 end,
+    [
+     ?_assertEqual([2,4], to_list(filter(four(), Even)))
     ].

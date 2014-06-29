@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("bs_macros.hrl").
 
+
 read(S) ->
     read_tokens(tokenize(S)).
 
