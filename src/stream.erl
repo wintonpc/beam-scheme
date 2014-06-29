@@ -1,8 +1,8 @@
--module(enum).
+-module(stream).
 -export([make/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
 -include_lib("eunit/include/eunit.hrl").
 
-make(G) -> {enum, spawn(fun() -> G(), yield('ENUM_DONE') end)}.
+make(G) -> {stream, spawn(fun() -> G(), yield('STREAM_DONE') end)}.
 
 yield(V) ->
     receive
@@ -11,7 +11,7 @@ yield(V) ->
             V
     end.
 
-next({enum, Pid}) ->
+next({stream, Pid}) ->
     Alive = is_process_alive(Pid),
     if
         Alive ->
@@ -19,15 +19,15 @@ next({enum, Pid}) ->
             receive
                 {next_value, Pid, V} -> V
             end;
-        true -> 'ENUM_DONE'
+        true -> 'STREAM_DONE'
     end.
 
-done() -> 'ENUM_DONE'.
+done() -> 'STREAM_DONE'.
 
 to_list(E) -> to_list(E, []).
 to_list(E, Acc) ->
     case next(E) of
-        'ENUM_DONE' -> lists:reverse(Acc);
+        'STREAM_DONE' -> lists:reverse(Acc);
         V -> to_list(E, [V|Acc])
     end.
 
@@ -55,11 +55,11 @@ filter(E, Pred) ->
 
 walk(E, F) ->
     case next(E) of
-        'ENUM_DONE' -> 'ENUM_DONE';
+        'STREAM_DONE' -> 'STREAM_DONE';
         V -> F(V),
              walk(E, F)
     end.
-    
+
 
 %%% TESTS %%%
 
@@ -105,7 +105,7 @@ four() -> make(fun() -> yield(1), yield(2), yield(3), yield(4) end).
 
 %% tests
 
-enum_test_() ->
+stream_test_() ->
     N = naturals(),
     F = fib(),
     [
@@ -124,7 +124,7 @@ enum_test_() ->
      ?_assertEqual(13, next(F))
     ].
 
-compose_enum_test_() ->
+compose_stream_test_() ->
     Sn = squares(naturals()),
     Sf = squares(fib()),
     [
@@ -153,7 +153,7 @@ from_list_test_() ->
      ?_assertEqual([1,2,3,4], to_list(from_list([1,2,3,4])))
     ].
 
-empty_enum_test_() ->
+empty_stream_test_() ->
     MakeEmpty = fun() -> make(fun() -> ok end) end,
     [
      ?_assertEqual([], to_list(MakeEmpty())),

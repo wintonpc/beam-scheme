@@ -11,7 +11,7 @@ tokenize(S) ->
     classify(raw_tokens(S)).
 
 raw_tokens(S) ->
-    enum:make(fun() -> gen_tokenize(S, []) end).
+    stream:make(fun() -> gen_tokenize(S, []) end).
 
 gen_tokenize(S, CurrentToken) ->
     case S of
@@ -39,11 +39,11 @@ gen_tokenize(S, CurrentToken) ->
 yield_token(T) ->
     case T of
         [] -> ok;
-        _ -> enum:yield(lists:reverse(T))
+        _ -> stream:yield(lists:reverse(T))
     end.
 
 classify(TokenStream) ->
-    enum:map(TokenStream, fun(X) -> X end).
+    stream:map(TokenStream, fun(X) -> X end).
 
 read_tokens(Ts) ->
     lists:map(fun read_token/1, Ts).
@@ -75,11 +75,11 @@ is_digit(C) -> lists:member(C, "0123456789").
 
 raw_tokenize_test_() ->
     [
-     ?_assertEqual([], enum:to_list(tokenize(""))),
-     ?_assertEqual(["0"], enum:to_list(tokenize("0"))),
-     ?_assertEqual(["01"], enum:to_list(tokenize("01"))),
-     ?_assertEqual(["0", "1"], enum:to_list(tokenize("0 1"))),
-     ?_assertEqual(["01", "23"], enum:to_list(tokenize("01 23")))
+     ?_assertEqual([], stream:to_list(tokenize(""))),
+     ?_assertEqual(["0"], stream:to_list(tokenize("0"))),
+     ?_assertEqual(["01"], stream:to_list(tokenize("01"))),
+     ?_assertEqual(["0", "1"], stream:to_list(tokenize("0 1"))),
+     ?_assertEqual(["01", "23"], stream:to_list(tokenize("01 23")))
     ].
 
 read_token_test_() ->
