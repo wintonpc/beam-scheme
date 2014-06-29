@@ -8,30 +8,42 @@ read(S) ->
     read_tokens(tokenize(S)).
 
 tokenize(S) ->
-    tokenize(S, [], []).
+    classify(raw_tokens(S)).
 
-tokenize(S, T, Ts) ->
-    io:format("tokenize(~s, ~s, ~s)~n", [S, T, Ts]),
-    case length(S) of
-        0 ->
-            case length(T) of
-                0 ->
-                    lists:reverse(Ts);
-                _ ->
-                    push_token(T, Ts)
-            end;
-        _ ->
-            [C|Rest] = S,
+raw_tokens(S) ->
+    enum:make(fun() -> gen_tokenize(S, []) end).
+
+gen_tokenize(S, CurrentToken) ->
+    case S of
+        [] ->
+            yield_token(CurrentToken),
+            ok;
+        [C|Rest] ->
             case C of
-                $  -> % space
-                    tokenize(Rest, [], push_token(T, Ts));
+                $( ->
+                    yield_token(CurrentToken),
+                    yield_token($(),
+                    gen_tokenize(Rest, []);
+                $) ->
+                    yield_token(CurrentToken),
+                    yield_token($)),
+                    gen_tokenize(Rest, []);
+                $ ->
+                    yield_token(CurrentToken),
+                    gen_tokenize(Rest, []);
                 _ ->
-                    tokenize(Rest, [C|T], Ts)
+                    gen_tokenize(Rest, [C|CurrentToken])
             end
     end.
 
-push_token(T, Ts) ->
-    lists:reverse([lists:reverse(T) | Ts]).
+yield_token(T) ->
+    case T of
+        [] -> ok;
+        _ -> enum:yield(lists:reverse(T))
+    end.
+
+classify(TokenStream) ->
+    enum:map(TokenStream, fun(X) -> X end).
 
 read_tokens(Ts) ->
     lists:map(fun read_token/1, Ts).
@@ -61,13 +73,13 @@ is_digit(C) -> lists:member(C, "0123456789").
 
 % tests
 
-tokenize_test_() ->
+raw_tokenize_test_() ->
     [
-     ?_assertEqual([], tokenize("")),
-     ?_assertEqual(["0"], tokenize("0")),
-     ?_assertEqual(["01"], tokenize("01")),
-     ?_assertEqual(["0", "1"], tokenize("0 1")),
-     ?_assertEqual(["01", "23"], tokenize("01 23"))
+     ?_assertEqual([], enum:to_list(tokenize(""))),
+     ?_assertEqual(["0"], enum:to_list(tokenize("0"))),
+     ?_assertEqual(["01"], enum:to_list(tokenize("01"))),
+     ?_assertEqual(["0", "1"], enum:to_list(tokenize("0 1"))),
+     ?_assertEqual(["01", "23"], enum:to_list(tokenize("01 23")))
     ].
 
 read_token_test_() ->
