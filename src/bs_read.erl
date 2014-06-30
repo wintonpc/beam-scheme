@@ -5,7 +5,9 @@
 
 
 read(S) ->
-    evaluate(tokenize(S)).
+    parse(stream:to_list(evaluate(tokenize(S)))).
+
+%%% TOKENIZE %%%
 
 tokenize(S) ->
     stream:make(fun() -> gen_tokenize(S, []) end).
@@ -39,6 +41,9 @@ yield_token(T) ->
         _ -> stream:yield(lists:reverse(T))
     end.
 
+
+%%% EVALUATE %%%
+
 evaluate(TokenStream) ->
     stream:map(TokenStream, fun evaluate_token/1).
 
@@ -69,14 +74,49 @@ is_digit(C) -> lists:member(C, "0123456789").
 
 % tests
 
+
+%%% PARSE %%%
+
+parse(TokenStream) -> parse(TokenStream, none, []).
+parse(TokenStream, Opener, Acc) ->
+    Done = stream:done(),
+    case stream:next(TokenStream) of
+        Done ->
+            validate_closer(Opener, none),
+            lists:reverse(Acc);
+        '(' ->
+            parse(TokenStream, Opener, [parse(TokenStream, '(', [])|Acc]);
+        ')' ->
+            validate_closer(Opener, ')'),
+            lists:reverse(Acc);
+        T ->
+            parse(TokenStream, Opener, [T|Acc])
+    end.
+
+validate_closer(Opener, Closer) ->
+    case {Opener, Closer} of
+        {'(', ')'} -> ok;
+        {'(', none} -> error({mismatched, '('});
+        {none, none} -> ok;
+        {none, ')'} -> error({mismatched, ')'});
+        _ -> error({bad_closer, Closer, for, Opener})
+    end.
+    
+
+%%% TESTS %%%
+
+lst(Stream) -> stream:to_list(Stream).
+str(List) -> stream:from_list(List).
+toks(S) -> evaluate(tokenize(S)).
+
 tokenize_test_() ->
     [
-     ?_assertEqual([], stream:to_list(tokenize(""))),
-     ?_assertEqual(["0"], stream:to_list(tokenize("0"))),
-     ?_assertEqual(["01"], stream:to_list(tokenize("01"))),
-     ?_assertEqual(["0", "1"], stream:to_list(tokenize("0 1"))),
-     ?_assertEqual(["01", "23"], stream:to_list(tokenize("01 23"))),
-     ?_assertEqual(["(", "foo", ")"], stream:to_list(tokenize("(foo)")))
+     ?_assertEqual([], lst(tokenize(""))),
+     ?_assertEqual(["0"], lst(tokenize("0"))),
+     ?_assertEqual(["01"], lst(tokenize("01"))),
+     ?_assertEqual(["0", "1"], lst(tokenize("0 1"))),
+     ?_assertEqual(["01", "23"], lst(tokenize("01 23"))),
+     ?_assertEqual(["(", "foo", ")"], lst(tokenize("(foo)")))
     ].
 
 evaluate_test_() ->
@@ -89,4 +129,19 @@ evaluate_test_() ->
      ?_assertEqual('(', evaluate_token("(")),
      ?_assertEqual(')', evaluate_token(")")),
      ?_assertEqual(foo, evaluate_token("foo"))
+    ].
+
+parse_test_() ->
+    [
+     ?_assertEqual([], parse(toks(""))),
+     ?_assertEqual([foo], parse(toks("foo"))),
+     ?_assertEqual([foo, bar], parse(toks("foo bar"))),
+     ?_assertEqual([[]], parse(toks("()"))),
+     ?_assertEqual([[foo]], parse(toks("(foo)"))),
+     ?_assertEqual([a, [b, c], d], parse(toks("a (b c) d"))),
+     ?_assertEqual([a, [b, [x, y, z], c], d], parse(toks("a (b (x y z) c) d"))),
+     ?_assertError({mismatched, ')'}, parse(toks(")"))),
+     ?_assertError({mismatched, ')'}, parse(toks("x)"))),
+     ?_assertError({mismatched, '('}, parse(toks("("))),
+     ?_assertError({mismatched, '('}, parse(toks("(x")))
     ].
