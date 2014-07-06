@@ -4,7 +4,8 @@
   {vsn, "1"},
   {modules, [
              bs_read,
-             stream
+             stream,
+             box
             ]},
   {registered, []},
   {applications, [
