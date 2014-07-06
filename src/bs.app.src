@@ -4,6 +4,7 @@
   {vsn, "1"},
   {modules, [
              bs_read,
+             bs_env,
              stream,
              box
             ]},
