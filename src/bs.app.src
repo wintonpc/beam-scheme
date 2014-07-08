@@ -5,6 +5,8 @@
   {modules, [
              bs_read,
              bs_env,
+             bs_compile,
+             bs_vm,
              stream,
              box
             ]},

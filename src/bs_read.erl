@@ -5,7 +5,7 @@
 
 
 read(S) ->
-    parse(stream:to_list(evaluate(tokenize(S)))).
+    parse(evaluate(tokenize(S))).
 
 %%% TOKENIZE %%%
 
@@ -145,3 +145,6 @@ parse_test_() ->
      ?_assertError({mismatched, '('}, parse(toks("("))),
      ?_assertError({mismatched, '('}, parse(toks("(x")))
     ].
+
+read_test() ->
+    ?assertEqual([[[lambda, [a, b], a], 1, 2]], read("((lambda (a b) a) 1 2)")).
