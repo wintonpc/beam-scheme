@@ -1,0 +1,3 @@
+- streaming read; wrap around stdin
+- repl
+- primitive procedures
