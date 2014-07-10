@@ -4,55 +4,55 @@
 
 eval(X) -> bs_vm:vm(compile(X)).
 
-compile(X) -> compile(X, [halt]).
+compile(X) -> compile(X, {halt}).
 
 compile(X, Next) when is_atom(X) ->
-    [refer, X, Next];
+    {refer, X, Next};
 
 compile([quote, Obj], Next) ->
-    [constant, Obj, Next];
+    {constant, Obj, Next};
 
 compile([lambda, Vars, Body], Next) ->
-    [close, Vars, compile(Body, [return]), Next];
+    {close, Vars, compile(Body, {return}), Next};
 
 compile([Op|Args], Next) ->
-    Compiled = compile_args(Args, compile(Op, [apply])),
+    Compiled = compile_args(Args, compile(Op, {apply})),
     case is_tail(Next) of
         true -> Compiled;
-        false -> [frame, Compiled, Next]
+        false -> {frame, Compiled, Next}
     end;
 
 compile(X, Next) ->
-    [constant, X, Next].
+    {constant, X, Next}.
 
 
 compile_args([], Compiled) -> Compiled;
 compile_args([Arg|Rest], Compiled) ->
-    compile_args(Rest, compile(Arg, [argument, Compiled])).
+    compile_args(Rest, compile(Arg, {argument, Compiled})).
 
-is_tail([return]) -> true;
+is_tail({return}) -> true;
 is_tail(_) -> false.
 
     
 
 compile_symbol_test() ->
-    ?assertEqual([refer, foo, [halt]], compile(foo)).
+    ?assertEqual({refer, foo, {halt}}, compile(foo)).
 
 compile_integer_test() ->
-    ?assertEqual([constant, 1, [halt]], compile(1)).
+    ?assertEqual({constant, 1, {halt}}, compile(1)).
 
 compile_quote_test() ->
-    ?assertEqual([constant, [foo, bar], [halt]], compile([quote, [foo, bar]])).
+    ?assertEqual({constant, [foo, bar], {halt}}, compile([quote, [foo, bar]])).
 
 compile_lambda_test() ->
-    ?assertEqual([close, [x], [refer, x, [return]], [halt]], compile([lambda, [x], x])).
+    ?assertEqual({close, [x], {refer, x, {return}}, {halt}}, compile([lambda, [x], x])).
 
 compile_application_test() ->
-    ?assertEqual([frame,
-                  [constant, 2,
-                   [argument,
-                    [constant, 1,
-                     [argument,
-                      [close, [a, b], [refer, a, [return]], [apply]]]]]],
-                  [halt]],
+    ?assertEqual({frame,
+                  {constant, 2,
+                   {argument,
+                    {constant, 1,
+                     {argument,
+                      {close, [a, b], {refer, a, {return}}, {apply}}}}}},
+                  {halt}},
                  compile([[lambda, [a, b], a], 1, 2])).
