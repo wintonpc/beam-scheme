@@ -2,7 +2,7 @@
 -export([make/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
 -include_lib("eunit/include/eunit.hrl").
 
-make(G) -> {stream, spawn(fun() -> G(), yield('STREAM_DONE') end)}.
+make(G) -> {stream, spawn_link(fun() -> G(), yield('STREAM_DONE') end)}.
 
 yield(V) ->
     receive
@@ -17,7 +17,8 @@ next({stream, Pid}) ->
         Alive ->
             Pid ! {next, self()},
             receive
-                {next_value, Pid, V} -> V
+                {next_value, Pid, V} -> V;
+                {error, Reason} -> error(Reason)
             end;
         true -> 'STREAM_DONE'
     end.

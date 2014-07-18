@@ -8,6 +8,7 @@
              bs_compile,
              bs_vm,
              stream,
+             buffer_stream,
              box
             ]},
   {registered, []},
