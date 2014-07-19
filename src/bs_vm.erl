@@ -6,7 +6,7 @@
 vm(X) -> vm([], X, bs_env:empty(), [], []).
 
 vm(A, X, E, R, S) ->
-    io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),
+    %io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),
     case X of
         {halt} -> A;
         {constant, Obj, _X} ->
@@ -36,11 +36,9 @@ application_test_() ->
     ].
 
 full_stack_test_() ->
-    [A] = bs_read:read1("((lambda (a b) a) 1 2)"),
-    [B] = bs_read:read1("((lambda (a b) b) 1 2)"),
     [
-     ?_assertEqual(1, bs_compile:eval(A)),
-     ?_assertEqual(2, bs_compile:eval(B))
+     ?_assertEqual(1, bs_compile:eval(bs_read:read1("((lambda (a b) a) 1 2)"))),
+     ?_assertEqual(2, bs_compile:eval(bs_read:read1("((lambda (a b) b) 1 2)")))
     ].
     
 

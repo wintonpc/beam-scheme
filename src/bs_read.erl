@@ -14,6 +14,9 @@ read1(String) when is_list(String) ->
 read1(CharStream) ->
     stream:next(read(CharStream)).
 
+read_all(String) when is_list(String) ->
+    stream:to_list(read(stream:from_list(String))).
+
 
 %%% TOKENIZE %%%
 
@@ -85,26 +88,27 @@ is_digit(C) -> lists:member(C, "0123456789").
 
 parse(TokenStream) -> stream:make(fun() -> gen_parse(TokenStream) end).
 
-gen_parse(TokenStream) ->
-    stream:yield(parse1(TokenStream)),
-    gen_parse(TokenStream).
+gen_parse(TokenStream) -> gen_parse(TokenStream, none, fun(_) -> ok end, fun(X, _) -> stream:yield(X) end, nil).
 
-parse1(TokenStream) -> parse1(TokenStream, none, []).
-parse1(TokenStream, Opener, Acc) ->
+gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
     StreamDone = stream:done(),
     case stream:next(TokenStream) of
         StreamDone ->
             validate_closer(Opener, none),
-            lists:reverse(Acc);
+            Yield(Acc);
         '(' ->
-            parse1(TokenStream, Opener, [parse1(TokenStream, '(', [])|Acc]);
+            Parsed = gen_parse(TokenStream, '(', fun lists:reverse/1, fun(X, Acc2) -> [X|Acc2] end, []),
+            gen_parse(TokenStream, Opener, Yield, Add, Add(Parsed, Acc));
         ')' ->
             validate_closer(Opener, ')'),
-            lists:reverse(Acc);
+            Yield(Acc);
         T ->
-            parse1(TokenStream, Opener, [T|Acc])
+            gen_parse(TokenStream, Opener, Yield, Add, Add(T, Acc))
     end.
 
+yield_expr(Acc) ->
+    stream:yield(lists:reverse(Acc)).
+    
 validate_closer(Opener, Closer) ->
     case {Opener, Closer} of
         {'(', ')'} -> ok;
@@ -149,18 +153,17 @@ evaluate_test_() ->
 
 parse_test_() ->
     [
-     ?_assertEqual([], read1("")),
-     ?_assertEqual([foo], read1("foo")),
-     ?_assertEqual([foo, bar], read1("foo bar")),
-     ?_assertEqual([[]], read1("()")),
-     ?_assertEqual([[foo]], read1("(foo)")),
-     ?_assertEqual([a, [b, c], d], read1("a (b c) d")),
-     ?_assertEqual([a, [b, [x, y, z], c], d], read1("a (b (x y z) c) d")),
-     ?_assertError({mismatched, ')'}, read1(")")),
-     ?_assertError({mismatched, ')'}, read1("x)")),
-     ?_assertError({mismatched, '('}, read1("(")),
-     ?_assertError({mismatched, '('}, read1("(x"))
+     ?_assertEqual([foo], read_all("foo")),
+     ?_assertEqual([foo, bar], read_all("foo bar")),
+     ?_assertEqual([[]], read_all("()")),
+     ?_assertEqual([[foo]], read_all("(foo)")),
+     ?_assertEqual([a, [b, c], d], read_all("a (b c) d")),
+     ?_assertEqual([a, [b, [x, y, z], c], d], read_all("a (b (x y z) c) d")),
+     ?_assertError({mismatched, ')'}, read_all(")")),
+     ?_assertError({mismatched, ')'}, read_all("x)")),
+     ?_assertError({mismatched, '('}, read_all("(")),
+     ?_assertError({mismatched, '('}, read_all("(x"))
     ].
 
 read_test() ->
-    ?assertEqual([[[lambda, [a, b], a], 1, 2]], read1("((lambda (a b) a) 1 2)")).
+    ?assertEqual([[[lambda, [a, b], a], 1, 2]], read_all("((lambda (a b) a) 1 2)")).

@@ -3,20 +3,17 @@
 -include_lib("eunit/include/eunit.hrl").
 
 run() ->
-    S = buffer_stream:make(),
-    spawn_link(fun() -> watch_keyboard(S) end),    
-    run(S).
+    KeyboardBuffer = buffer_stream:make(),
+    spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),    
+    run(bs_read:read(KeyboardBuffer)).
 
-run(S) ->
-    io:format("~p~n", [S]),
-    print(bs_read:read(S)),
-    run(S).
+run(ExprStream) ->
+    print(bs_compile:eval(stream:next(ExprStream))),
+    run(ExprStream).
     
-watch_keyboard(S) ->
-    Line = io:get_line("> "),
-    io:format("Line: ~p~n", [Line]),
-    buffer_stream:append(S, Line),
-    watch_keyboard(S).
+watch_keyboard(Buf) ->
+    buffer_stream:append(Buf, io:get_line("Scheme> ")),
+    watch_keyboard(Buf).
 
 print(Exp) ->
     io:format("~p~n", [Exp]).
