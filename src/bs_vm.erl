@@ -36,8 +36,8 @@ application_test_() ->
     ].
 
 full_stack_test_() ->
-    [A] = bs_read:read("((lambda (a b) a) 1 2)"),
-    [B] = bs_read:read("((lambda (a b) b) 1 2)"),
+    [A] = bs_read:read1("((lambda (a b) a) 1 2)"),
+    [B] = bs_read:read1("((lambda (a b) b) 1 2)"),
     [
      ?_assertEqual(1, bs_compile:eval(A)),
      ?_assertEqual(2, bs_compile:eval(B))

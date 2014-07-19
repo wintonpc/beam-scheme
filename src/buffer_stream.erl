@@ -1,5 +1,5 @@
 -module(buffer_stream).
--export([make/0, append/2]).
+-export([make/0, append/2, length/1]).
 -include_lib("eunit/include/eunit.hrl").
 
 make() -> {stream, spawn_link(fun run/0)}.
@@ -9,17 +9,29 @@ run() -> run(nil, []).
 append({stream, Pid}, Data) ->
     Pid ! {append_data, Data}.
 
+length({stream, Pid}) ->
+    Pid ! {get_length, self()},
+    receive
+        {length, Pid, Length} -> Length
+    end.
+
 run(Caller, [B|Rest]) when is_pid(Caller) ->
     Caller ! {next_value, self(), B},
     run(nil, Rest);
+
 
 run(OldCaller, Buffer) ->
     receive
         {append_data, Data} ->
             run(OldCaller, Buffer ++ Data);
+        {get_length, Caller} ->
+            Caller ! {length, self(), erlang:length(Buffer)},
+            run(OldCaller, Buffer);
         {next, NewCaller} ->
-            if is_pid(OldCaller) -> NewCaller ! {error, {multiple_callers, OldCaller}};
-               true -> run(NewCaller, Buffer)
+            if is_pid(OldCaller) ->
+                    error({multiple_callers, OldCaller});
+               true ->
+                    run(NewCaller, Buffer)
             end
     end.
 
@@ -52,4 +64,7 @@ multiple_readers_error_test() ->
     timer:sleep(20),
     ?assertError({multiple_callers, OtherPid}, stream:next(S)).
                   
-    
+length_test() ->
+    S = make(),
+    append(S, [4,4,4]),
+    ?assertEqual(3, buffer_stream:length(S)).

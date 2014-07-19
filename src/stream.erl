@@ -1,8 +1,12 @@
 -module(stream).
--export([make/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
+-export([make/1, destroy/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
 -include_lib("eunit/include/eunit.hrl").
 
-make(G) -> {stream, spawn_link(fun() -> G(), yield('STREAM_DONE') end)}.
+make(G) ->
+    process_flag(trap_exit, true),
+    {stream, spawn_link(fun() -> G(), yield('STREAM_DONE') end)}.
+
+destroy({stream, Pid}) -> exit(Pid, normal).
 
 yield(V) ->
     receive
@@ -12,15 +16,12 @@ yield(V) ->
     end.
 
 next({stream, Pid}) ->
-    Alive = is_process_alive(Pid),
-    if
-        Alive ->
-            Pid ! {next, self()},
-            receive
-                {next_value, Pid, V} -> V;
-                {error, Reason} -> error(Reason)
-            end;
-        true -> 'STREAM_DONE'
+    Pid ! {next, self()},
+    receive
+        {next_value, Pid, V} -> V;
+        {'EXIT', Pid, normal} -> 'STREAM_DONE';
+        {'EXIT', Pid, {Reason, StackTrace}} ->
+            error(erlang:raise(error, Reason, StackTrace))
     end.
 
 done() -> 'STREAM_DONE'.
@@ -47,12 +48,12 @@ map(E, F) ->
 
 filter(E, Pred) ->
     make(fun() ->
-                      walk(E, fun(V) -> case Pred(V) of
-                                            true -> yield(V);
-                                            false -> ok
-                                        end
-                              end)
-              end).
+                 walk(E, fun(V) -> case Pred(V) of
+                                       true -> yield(V);
+                                       false -> ok
+                                   end
+                         end)
+         end).
 
 walk(E, F) ->
     case next(E) of

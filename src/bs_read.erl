@@ -3,35 +3,46 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("bs_macros.hrl").
 
+read(CharStream) -> parse(evaluate(tokenize(CharStream))).
 
-read(S) ->
-    parse(evaluate(tokenize(S))).
+read1(String) when is_list(String) ->
+    CharStream = stream:from_list(String),
+    Result = read1(CharStream),
+    stream:destroy(CharStream),
+    Result;
+
+read1(CharStream) ->
+    stream:next(read(CharStream)).
+
 
 %%% TOKENIZE %%%
 
-tokenize(S) ->
-    stream:make(fun() -> gen_tokenize(S, []) end).
+tokenize(CharStream) ->
+    stream:make(fun() -> gen_tokenize(CharStream) end).
 
-gen_tokenize(S, CurrentToken) ->
-    case S of
-        [] ->
+gen_tokenize(CharStream) -> gen_tokenize(CharStream, []).
+gen_tokenize(CharStream, CurrentToken) ->
+    StreamDone = stream:done(),
+    OnWhitespace = fun() -> yield_token(CurrentToken), gen_tokenize(CharStream) end,
+    case stream:next(CharStream) of
+        StreamDone ->
             yield_token(CurrentToken),
             ok;
-        [C|Rest] ->
-            case C of
+        Char ->
+            case Char of
                 $( ->
                     yield_token(CurrentToken),
                     yield_token("("),
-                    gen_tokenize(Rest, []);
+                    gen_tokenize(CharStream);
                 $) ->
                     yield_token(CurrentToken),
                     yield_token(")"),
-                    gen_tokenize(Rest, []);
-                $ ->
-                    yield_token(CurrentToken),
-                    gen_tokenize(Rest, []);
+                    gen_tokenize(CharStream);
+                $   -> OnWhitespace();
+                $\n -> OnWhitespace();
+                $\r -> OnWhitespace();
                 _ ->
-                    gen_tokenize(Rest, [C|CurrentToken])
+                    gen_tokenize(CharStream, [Char|CurrentToken])
             end
     end.
 
@@ -69,28 +80,29 @@ tok_is_uinteger(_) -> false.
     
 is_digit(C) -> lists:member(C, "0123456789").
 
-%is_sign(C) ->
-%    lists:member(C, "+-").
-
-% tests
-
 
 %%% PARSE %%%
 
-parse(TokenStream) -> parse(TokenStream, none, []).
-parse(TokenStream, Opener, Acc) ->
-    Done = stream:done(),
+parse(TokenStream) -> stream:make(fun() -> gen_parse(TokenStream) end).
+
+gen_parse(TokenStream) ->
+    stream:yield(parse1(TokenStream)),
+    gen_parse(TokenStream).
+
+parse1(TokenStream) -> parse1(TokenStream, none, []).
+parse1(TokenStream, Opener, Acc) ->
+    StreamDone = stream:done(),
     case stream:next(TokenStream) of
-        Done ->
+        StreamDone ->
             validate_closer(Opener, none),
             lists:reverse(Acc);
         '(' ->
-            parse(TokenStream, Opener, [parse(TokenStream, '(', [])|Acc]);
+            parse1(TokenStream, Opener, [parse1(TokenStream, '(', [])|Acc]);
         ')' ->
             validate_closer(Opener, ')'),
             lists:reverse(Acc);
         T ->
-            parse(TokenStream, Opener, [T|Acc])
+            parse1(TokenStream, Opener, [T|Acc])
     end.
 
 validate_closer(Opener, Closer) ->
@@ -105,18 +117,22 @@ validate_closer(Opener, Closer) ->
 
 %%% TESTS %%%
 
-lst(Stream) -> stream:to_list(Stream).
 str(List) -> stream:from_list(List).
-toks(S) -> evaluate(tokenize(S)).
+toks(String) ->
+    CharStream = stream:from_list(String),
+    Result = stream:to_list(tokenize(CharStream)),
+    stream:destroy(CharStream),
+    Result.
 
 tokenize_test_() ->
-    [
-     ?_assertEqual([], lst(tokenize(""))),
-     ?_assertEqual(["0"], lst(tokenize("0"))),
-     ?_assertEqual(["01"], lst(tokenize("01"))),
-     ?_assertEqual(["0", "1"], lst(tokenize("0 1"))),
-     ?_assertEqual(["01", "23"], lst(tokenize("01 23"))),
-     ?_assertEqual(["(", "foo", ")"], lst(tokenize("(foo)")))
+   [
+     ?_assertEqual([], toks("")),
+     ?_assertEqual(["0"], toks("0")),
+     ?_assertEqual(["01"], toks("01")),
+     ?_assertEqual(["0", "1"], toks("0 1")),
+     ?_assertEqual(["01", "23"], toks("01 23")),
+     ?_assertEqual(["01", "23"], toks("01\r\n23")),
+     ?_assertEqual(["(", "foo", ")"], toks("(foo)"))
     ].
 
 evaluate_test_() ->
@@ -133,18 +149,18 @@ evaluate_test_() ->
 
 parse_test_() ->
     [
-     ?_assertEqual([], parse(toks(""))),
-     ?_assertEqual([foo], parse(toks("foo"))),
-     ?_assertEqual([foo, bar], parse(toks("foo bar"))),
-     ?_assertEqual([[]], parse(toks("()"))),
-     ?_assertEqual([[foo]], parse(toks("(foo)"))),
-     ?_assertEqual([a, [b, c], d], parse(toks("a (b c) d"))),
-     ?_assertEqual([a, [b, [x, y, z], c], d], parse(toks("a (b (x y z) c) d"))),
-     ?_assertError({mismatched, ')'}, parse(toks(")"))),
-     ?_assertError({mismatched, ')'}, parse(toks("x)"))),
-     ?_assertError({mismatched, '('}, parse(toks("("))),
-     ?_assertError({mismatched, '('}, parse(toks("(x")))
+     ?_assertEqual([], read1("")),
+     ?_assertEqual([foo], read1("foo")),
+     ?_assertEqual([foo, bar], read1("foo bar")),
+     ?_assertEqual([[]], read1("()")),
+     ?_assertEqual([[foo]], read1("(foo)")),
+     ?_assertEqual([a, [b, c], d], read1("a (b c) d")),
+     ?_assertEqual([a, [b, [x, y, z], c], d], read1("a (b (x y z) c) d")),
+     ?_assertError({mismatched, ')'}, read1(")")),
+     ?_assertError({mismatched, ')'}, read1("x)")),
+     ?_assertError({mismatched, '('}, read1("(")),
+     ?_assertError({mismatched, '('}, read1("(x"))
     ].
 
 read_test() ->
-    ?assertEqual([[[lambda, [a, b], a], 1, 2]], read("((lambda (a b) a) 1 2)")).
+    ?assertEqual([[[lambda, [a, b], a], 1, 2]], read1("((lambda (a b) a) 1 2)")).
