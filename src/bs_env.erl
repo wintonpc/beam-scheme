@@ -1,6 +1,6 @@
 -module(bs_env).
 -include_lib("eunit/include/eunit.hrl").
--export([empty/0, lookup/2, extend/3, set/3]).
+-export([empty/0, lookup/2, extend/3, set/3, make/3]).
 
 make(Vars, Vals, Parent) ->
     {bs_env, Vars, box:make(Vals), Parent}.

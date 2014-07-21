@@ -1,8 +1,10 @@
 -module(bs_compile).
 -include_lib("eunit/include/eunit.hrl").
--export([compile/1, eval/1]).
+-export([compile/1, eval/1, eval/2]).
 
-eval(X) -> bs_vm:vm(compile(X)).
+eval(X) -> eval(X, bs_env:empty()).
+
+eval(X, Env) -> bs_vm:vm(compile(X), Env).
 
 compile(X) -> compile(X, {halt}).
 
@@ -33,7 +35,6 @@ compile_args([Arg|Rest], Compiled) ->
 is_tail({return}) -> true;
 is_tail(_) -> false.
 
-    
 
 compile_symbol_test() ->
     ?assertEqual({refer, foo, {halt}}, compile(foo)).

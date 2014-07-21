@@ -1,9 +1,11 @@
 -module(bs_vm).
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
--export([vm/1]).
+-export([vm/2]).
 
 vm(X) -> vm([], X, bs_env:empty(), [], []).
+
+vm(X, Env) -> vm([], X, Env, [], []).
 
 vm(A, X, E, R, S) ->
     %io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),
@@ -18,8 +20,12 @@ vm(A, X, E, R, S) ->
         {frame, _X, Ret} -> vm(A, _X, E, [], make_frame(Ret, E, R, S));
         {argument, _X} -> vm(A, _X, E, [A|R], S);
         {apply} ->
-            {Body, Env, Vars} = A,
-            vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
+            case A of
+                PrimProc when is_function(PrimProc) ->
+                    vm(erlang:apply(PrimProc, R), {return}, E, R, S);
+                {Body, Env, Vars} ->
+                    vm(A, Body, bs_env:extend(Env, Vars, R), [], S)
+            end;
         {return} ->
             {_X, _E, _R, _S} = S,
             vm(A, _X, _E, _R, _S)

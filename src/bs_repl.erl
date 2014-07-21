@@ -5,11 +5,11 @@
 run() ->
     KeyboardBuffer = buffer_stream:make(),
     spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),    
-    run(bs_read:read(KeyboardBuffer)).
+    run(bs_read:read(KeyboardBuffer), bs_scheme:env()).
 
-run(ExprStream) ->
-    bs_print:print(bs_compile:eval(stream:next(ExprStream))),
-    run(ExprStream).
+run(ExprStream, Env) ->
+    bs_print:print(bs_compile:eval(stream:next(ExprStream), Env)),
+    run(ExprStream, Env).
     
 watch_keyboard(Buf) ->
     buffer_stream:append(Buf, io:get_line("Scheme> ")),
