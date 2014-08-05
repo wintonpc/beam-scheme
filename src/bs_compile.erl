@@ -1,34 +1,38 @@
 -module(bs_compile).
 -include_lib("eunit/include/eunit.hrl").
--export([compile/1, eval/1]).
+-export([compile/2, eval/1, eval/2]).
 
-eval(X) -> bs_vm:vm(compile(X)).
+eval(X) -> eval(X, bs_env:empty()).
 
-compile(X) -> compile(X, {halt}).
+eval(X, Env) -> bs_vm:vm(compile(X, Env), Env).
 
-compile(X, Next) when is_atom(X) ->
+compile(X) -> compile(X, bs_env:empty()).
+
+compile(X, Env) -> compile(X, {halt}, {bs_env:all_vars(Env), nil}).
+
+compile(X, Next, VarRibs) when is_atom(X) ->
     {refer, X, Next};
 
-compile([quote, Obj], Next) ->
+compile([quote, Obj], Next, VarRibs) ->
     {constant, Obj, Next};
 
-compile([lambda, Vars, Body], Next) ->
-    {close, Vars, compile(Body, {return}), Next};
+compile([lambda, Vars, Body], Next, VarRibs) ->
+    {close, Vars, compile(Body, {return}, VarRibs), Next};
 
-compile([Op|Args], Next) ->
-    Compiled = compile_args(Args, compile(Op, {apply})),
+compile([Op|Args], Next, VarRibs) ->
+    Compiled = compile_args(Args, compile(Op, {apply}, VarRibs), VarRibs),
     case is_tail(Next) of
         true -> Compiled;
         false -> {frame, Compiled, Next}
     end;
 
-compile(X, Next) ->
+compile(X, Next, VarRibs) ->
     {constant, X, Next}.
 
 
-compile_args([], Compiled) -> Compiled;
-compile_args([Arg|Rest], Compiled) ->
-    compile_args(Rest, compile(Arg, {argument, Compiled})).
+compile_args([], Compiled, VarRibs) -> Compiled;
+compile_args([Arg|Rest], Compiled, VarRibs) ->
+    compile_args(Rest, compile(Arg, {argument, Compiled}, VarRibs), VarRibs).
 
 is_tail({return}) -> true;
 is_tail(_) -> false.

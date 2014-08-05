@@ -1,9 +1,9 @@
 -module(bs_vm).
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
--export([vm/1]).
+-export([vm/2]).
 
-vm(X) -> vm([], X, bs_env:empty(), [], []).
+vm(X, Env) -> vm([], X, Env, [], []).
 
 vm(A, X, E, R, S) ->
     %io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),
@@ -30,9 +30,10 @@ make_closure(Body, E, Vars) -> {Body, E, Vars}.
 make_frame(X, E, R, S) -> {X, E, R, S}.
     
 application_test_() ->
+    Env = bs_env:empty(),
     [
-     ?_assertEqual(1, vm(bs_compile:compile([[lambda, [a, b], a], 1, 2]))),
-     ?_assertEqual(2, vm(bs_compile:compile([[lambda, [a, b], b], 1, 2])))
+     ?_assertEqual(1, vm(bs_compile:compile([[lambda, [a, b], a], 1, 2], Env), Env)),
+     ?_assertEqual(2, vm(bs_compile:compile([[lambda, [a, b], b], 1, 2], Env), Env))
     ].
 
 full_stack_test_() ->
