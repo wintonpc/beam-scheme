@@ -4,39 +4,68 @@
 
 eval(X) -> eval(X, bs_env:empty()).
 
-eval(X, Env) -> bs_vm:vm(compile(X, Env), Env).
+eval(X, Env) ->
+    Compiled = compile(X, Env),
+    %io:format(user, "~p~n", [Compiled]),
+    bs_vm:vm(Compiled, Env).
 
 compile(X) -> compile(X, bs_env:empty()).
 
-compile(X, Env) -> compile(X, {halt}, {bs_env:all_vars(Env), nil}).
+compile(X, Env) -> compile(X, {halt}, {Env, nil}).
 
-compile(X, Next, VarRibs) when is_atom(X) ->
-    {refer, X, Next};
+compile(X, Next, {Env, VarRibs}) when is_atom(X) ->
+    %io:format(user, "compiling a reference~n", []),
+    case {is_free_identifier(X, VarRibs), bs_env:try_lookup(X, Env)} of
+        {true, {found, Fun}} when is_function(Fun) ->
+            %io:format(user, "compiling primop~n", []),
+            {constant, make_primop(Fun), Next};
+        _ ->
+            %io:format(user, "reference: ~p~n", [Foo]),
+            {refer, X, Next}
+    end;
 
-compile([quote, Obj], Next, VarRibs) ->
+compile([quote, Obj], Next, _) ->
     {constant, Obj, Next};
 
-compile([lambda, Vars, Body], Next, VarRibs) ->
-    {close, Vars, compile(Body, {return}, VarRibs), Next};
+compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
+    {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
-compile([Op|Args], Next, VarRibs) ->
-    Compiled = compile_args(Args, compile(Op, {apply}, VarRibs), VarRibs),
+compile([Op|Args], Next, EnvInfo) ->
+    Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
     case is_tail(Next) of
         true -> Compiled;
         false -> {frame, Compiled, Next}
     end;
 
-compile(X, Next, VarRibs) ->
+compile(X, Next, _) ->
     {constant, X, Next}.
 
 
-compile_args([], Compiled, VarRibs) -> Compiled;
-compile_args([Arg|Rest], Compiled, VarRibs) ->
-    compile_args(Rest, compile(Arg, {argument, Compiled}, VarRibs), VarRibs).
+compile_args([], Compiled, _) -> Compiled;
+compile_args([Arg|Rest], Compiled, EnvInfo) ->
+    compile_args(Rest, compile(Arg, {argument, Compiled}, EnvInfo), EnvInfo).
 
 is_tail({return}) -> true;
 is_tail(_) -> false.
 
+add_rib(Vars, VarRibs) ->
+    {Vars, VarRibs}.
+
+is_free_identifier(Id, VarRibs) ->
+    not is_bound_identifier(Id, VarRibs).
+
+is_bound_identifier(_, nil) ->
+    false;
+is_bound_identifier(Id, {Vars, Parent}) ->
+    lists:member(Id, Vars) orelse is_bound_identifier(Id, Parent).
+    
+make_primop(Fun) ->
+    {arity, Arity} = erlang:fun_info(Fun, arity),
+    {primop_tag(Arity), Fun}.
+
+primop_tag(1) -> primop1;
+primop_tag(2) -> primop2;
+primop_tag(3) -> primop3.
     
 
 compile_symbol_test() ->
@@ -60,3 +89,13 @@ compile_application_test() ->
                       {close, [a, b], {refer, a, {return}}, {apply}}}}}},
                   {halt}},
                  compile([[lambda, [a, b], a], 1, 2])).
+
+is_free_identifier_test_() ->
+    VarRibs = {[a, b], {[c, d], nil}},
+    [
+     ?_assert(false == is_free_identifier(a, VarRibs)),
+     ?_assert(false == is_free_identifier(b, VarRibs)),
+     ?_assert(false == is_free_identifier(c, VarRibs)),
+     ?_assert(false == is_free_identifier(d, VarRibs)),
+     ?_assert(true == is_free_identifier(e, VarRibs))
+    ].

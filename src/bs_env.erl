@@ -1,22 +1,31 @@
 -module(bs_env).
 -include_lib("eunit/include/eunit.hrl").
--export([empty/0, lookup/2, extend/3, set/3, all_vars/1]).
+-export([empty/0, try_lookup/2, lookup/2, extend/3, set/3, all_vars/1]).
 
 make(Vars, Vals, Parent) ->
     {bs_env, box:make(Vars), box:make(Vals), Parent}.
 
 empty() -> make([], [], nil).
 
-lookup(Var, nil) ->
-    error({undefined_identifier, Var});
+lookup(Var, Env) ->
+    case try_lookup(Var, Env) of
+        not_found ->
+            error({undefined_identifier, Var});
+        {found, Val} ->
+            Val
+    end.
 
-lookup(Var, {bs_env, VarsBox, ValsBox, Parent}) ->
+try_lookup(_, nil) ->
+    not_found;
+
+% returns not_found or {found, Value}
+try_lookup(Var, {bs_env, VarsBox, ValsBox, Parent}) ->
     Vars = box:get(VarsBox),
     Vals = box:get(ValsBox),
     case lookup_var(Var, Vars, Vals) of
         'BS_ENV_NO_VAL' ->
-            lookup(Var, Parent);
-        Val -> Val
+            try_lookup(Var, Parent);
+        Val -> {found, Val}
     end.
 
 lookup_var(_, [], []) -> 'BS_ENV_NO_VAL';
@@ -67,6 +76,13 @@ lookup_test_() ->
 
      ?_assertEqual(3, lookup(c, Env2)),
      ?_assertEqual(4, lookup(d, Env2))
+    ].
+
+try_lookup_test_() ->
+    Env = extend(empty(), [a], [5]),
+    [
+     ?_assertEqual({found, 5}, try_lookup(a, Env)),
+     ?_assertEqual(not_found, try_lookup(b, Env))
     ].
 
 shadow_test_() ->

@@ -6,6 +6,7 @@
              bs_read,
              bs_env,
              bs_compile,
+             bs_integration,
              bs_print,
              bs_repl,
              bs_scheme,
