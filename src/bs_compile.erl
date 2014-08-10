@@ -22,25 +22,28 @@ compile([quote, Obj], Next, _) ->
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
-compile([Op|Args], Next, {Env, VarRibs}) when is_atom(Op) ->
-    case is_free_identifier(Op, VarRibs) of
-        false -> compile_application([Op|Args], Next, {Env, VarRibs});
-        true ->
-            case bs_env:try_lookup(Op, Env) of
-                not_found -> compile_application([Op|Args], Next, {Env, VarRibs}); % throw error?
-                {found, Fun} when is_function(Fun) ->
-                    compile_args(Args, {apply_primop_tag(Fun), Fun, Next}, {Env, VarRibs})
-            end
-    end;
+compile([Op|Args], Next, EnvInfo) when is_atom(Op) ->
+    NormalCompile = fun() -> compile_application(compile(Op, {apply}, EnvInfo), Args, Next, EnvInfo) end,
+    NormalCompile();
+    % {Env, VarRibs} = EnvInfo,
+    % case is_free_identifier(Op, VarRibs) of
+    %     false -> NormalCompile();
+    %     true ->
+    %         case bs_env:try_lookup(Op, Env) of
+    %             not_found -> NormalCompile(); % throw error?
+    %             {found, Fun} when is_function(Fun) ->
+    %                 compile_application({apply_primop_tag(Fun), Fun, {return}}, Args, Next, EnvInfo)
+    %         end
+    % end;
 
 compile(X, Next, EnvInfo) when is_list(X) ->
-    compile_application(X, Next, EnvInfo);
+    compile_application(X, Next, {apply}, EnvInfo);
 
 compile(X, Next, _) ->
     {constant, X, Next}.
 
-compile_application([Op|Args], Next, EnvInfo) ->
-    Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
+compile_application(CompiledOp, Args, Next, EnvInfo) ->
+    Compiled = compile_args(Args, CompiledOp, EnvInfo),
     case is_tail(Next) of
         true -> Compiled;
         false -> {frame, Compiled, Next}
