@@ -19,9 +19,9 @@ vm(A, X, E, R, S) ->
         {argument, _X} -> vm(A, _X, E, [A|R], S);
         {apply} ->
             case A of
-                {Body, Env, Vars} ->
+                {closure, Body, Env, Vars} ->
                     vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
-                {primop2, Fun} ->
+                {primop, 2, Fun} ->
                     case R of
                         [R1, R2] -> vm(Fun(R1, R2), {return}, E, R, S);
                         Rs -> error({wrong_arg_count, 2, Rs})
@@ -33,7 +33,7 @@ vm(A, X, E, R, S) ->
             vm(A, _X, _E, _R, _S)
     end.
         
-make_closure(Body, E, Vars) -> {Body, E, Vars}.
+make_closure(Body, E, Vars) -> {closure, Body, E, Vars}.
 
 make_frame(X, E, R, S) -> {X, E, R, S}.
     

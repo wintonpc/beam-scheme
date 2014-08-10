@@ -6,7 +6,7 @@ eval(X) -> eval(X, bs_env:empty()).
 
 eval(X, Env) ->
     Compiled = compile(X, Env),
-    %io:format(user, "~p~n", [Compiled]),
+    io:format(user, "~p~n", [Compiled]),
     bs_vm:vm(Compiled, Env).
 
 compile(X) -> compile(X, bs_env:empty()).
@@ -18,7 +18,7 @@ compile(X, Next, {Env, VarRibs}) when is_atom(X) ->
     case {is_free_identifier(X, VarRibs), bs_env:try_lookup(X, Env)} of
         {true, {found, Fun}} when is_function(Fun) ->
             %io:format(user, "compiling primop~n", []),
-            {constant, make_primop(Fun), Next};
+            {constant, {primop, arity(Fun), Fun}, Next};
         _ ->
             %io:format(user, "reference: ~p~n", [Foo]),
             {refer, X, Next}
@@ -59,14 +59,9 @@ is_bound_identifier(_, nil) ->
 is_bound_identifier(Id, {Vars, Parent}) ->
     lists:member(Id, Vars) orelse is_bound_identifier(Id, Parent).
     
-make_primop(Fun) ->
+arity(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
-    {primop_tag(Arity), Fun}.
-
-primop_tag(1) -> primop1;
-primop_tag(2) -> primop2;
-primop_tag(3) -> primop3.
-    
+    Arity.
 
 compile_symbol_test() ->
     ?assertEqual({refer, foo, {halt}}, compile(foo)).

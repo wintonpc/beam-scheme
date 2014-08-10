@@ -15,7 +15,7 @@ set_top_level_test() ->
     ?assertEqual(5, Evaluated).
 
 primop_test() ->
-    Expr = bs_read:read1("(- 7 4)"),
+    Expr = bs_read:read1("(+ (- 7 4) 10)"),
     Evaluated = bs_compile:eval(Expr, bs_scheme:env()),
-    ?assertEqual(3, Evaluated).
+    ?assertEqual(13, Evaluated).
 
