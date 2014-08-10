@@ -55,7 +55,7 @@ set_var([_|Vars], [OldVal|Vals], Var, NewVal) ->
     end.
 
 all_vars(nil) -> [];
-all_vars({bs_env, VarsBox, ValsBox, Parent}) ->
+all_vars({bs_env, VarsBox, _, Parent}) ->
     box:get(VarsBox) ++ all_vars(Parent).
 
 

@@ -6,23 +6,15 @@ eval(X) -> eval(X, bs_env:empty()).
 
 eval(X, Env) ->
     Compiled = compile(X, Env),
-    %io:format(user, "~p~n", [Compiled]),
+    io:format(user, "~p~n", [Compiled]),
     bs_vm:vm(Compiled, Env).
 
 compile(X) -> compile(X, bs_env:empty()).
 
 compile(X, Env) -> compile(X, {halt}, {Env, nil}).
 
-compile(X, Next, {Env, VarRibs}) when is_atom(X) ->
-    %io:format(user, "compiling a reference~n", []),
-    case {is_free_identifier(X, VarRibs), bs_env:try_lookup(X, Env)} of
-        {true, {found, Fun}} when is_function(Fun) ->
-            %io:format(user, "compiling primop~n", []),
-            {constant, make_primop(Fun), Next};
-        _ ->
-            %io:format(user, "reference: ~p~n", [Foo]),
-            {refer, X, Next}
-    end;
+compile(X, Next, _) when is_atom(X) ->
+    {refer, X, Next};
 
 compile([quote, Obj], Next, _) ->
     {constant, Obj, Next};
@@ -30,16 +22,29 @@ compile([quote, Obj], Next, _) ->
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
-compile([Op|Args], Next, EnvInfo) ->
-    Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
-    case is_tail(Next) of
-        true -> Compiled;
-        false -> {frame, Compiled, Next}
+compile([Op|Args], Next, {Env, VarRibs}) when is_atom(Op) ->
+    case is_free_identifier(Op, VarRibs) of
+        false -> compile_application([Op|Args], Next, {Env, VarRibs});
+        true ->
+            case bs_env:try_lookup(Op, Env) of
+                not_found -> compile_application([Op|Args], Next, {Env, VarRibs}); % throw error?
+                {found, Fun} when is_function(Fun) ->
+                    compile_args(Args, {apply_primop_tag(Fun), Fun, Next}, {Env, VarRibs})
+            end
     end;
+
+compile(X, Next, EnvInfo) when is_list(X) ->
+    compile_application(X, Next, EnvInfo);
 
 compile(X, Next, _) ->
     {constant, X, Next}.
 
+compile_application([Op|Args], Next, EnvInfo) ->
+    Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
+    case is_tail(Next) of
+        true -> Compiled;
+        false -> {frame, Compiled, Next}
+    end.
 
 compile_args([], Compiled, _) -> Compiled;
 compile_args([Arg|Rest], Compiled, EnvInfo) ->
@@ -59,14 +64,13 @@ is_bound_identifier(_, nil) ->
 is_bound_identifier(Id, {Vars, Parent}) ->
     lists:member(Id, Vars) orelse is_bound_identifier(Id, Parent).
     
-make_primop(Fun) ->
-    {arity, Arity} = erlang:fun_info(Fun, arity),
-    {primop_tag(Arity), Fun}.
-
-primop_tag(1) -> primop1;
-primop_tag(2) -> primop2;
-primop_tag(3) -> primop3.
-    
+apply_primop_tag(Fun) when is_function(Fun) ->
+    case erlang:fun_info(Fun, arity) of
+        {arity, 0} -> apply_primop_0;
+        {arity, 1} -> apply_primop_1;
+        {arity, 2} -> apply_primop_2;
+        {arity, 3} -> apply_primop_3
+    end.
 
 compile_symbol_test() ->
     ?assertEqual({refer, foo, {halt}}, compile(foo)).

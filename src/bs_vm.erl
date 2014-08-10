@@ -18,15 +18,12 @@ vm(A, X, E, R, S) ->
         {frame, _X, Ret} -> vm(A, _X, E, [], make_frame(Ret, E, R, S));
         {argument, _X} -> vm(A, _X, E, [A|R], S);
         {apply} ->
-            case A of
-                {Body, Env, Vars} ->
-                    vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
-                {primop2, Fun} ->
-                    case R of
-                        [R1, R2] -> vm(Fun(R1, R2), {return}, E, R, S);
-                        Rs -> error({wrong_arg_count, 2, Rs})
-                    end;
-                Unk -> error({tried_to_apply_non_procedure, Unk})
+            {Body, Env, Vars} = A,
+            vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
+        {apply_primop_2, Fun, _X} ->
+            case R of
+                [R1, R2] -> vm(Fun(R1, R2), _X, E, R, S);
+                Rs -> error({wrong_arg_count, 2, Rs})
             end;
         {return} ->
             {_X, _E, _R, _S} = S,
