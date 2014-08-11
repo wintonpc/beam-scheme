@@ -30,6 +30,11 @@ compile([quote, Obj], Next, _) ->
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
+compile(['if', Test, Then, Else], Next, EnvInfo) ->
+    ThenC = compile(Then, Next, EnvInfo),
+    ElseC = compile(Else, Next, EnvInfo),
+    compile(Test, {test, ThenC, ElseC}, EnvInfo);
+
 compile(['set!', Var, X], Next, EnvInfo) ->
     compile(X, {assign, Var, Next}, EnvInfo);
 
@@ -77,6 +82,9 @@ compile_quote_test() ->
 
 compile_lambda_test() ->
     ?assertEqual({close, [x], {refer, x, {return}}, {halt}}, compile([lambda, [x], x])).
+
+compile_if_test() ->
+    ?assertEqual({constant, 5, {test, {constant, 1, {halt}}, {constant, 2, {halt}}}}, compile(['if', 5, 1, 2])).
 
 compile_set_test() ->
     ?assertEqual({constant, 5, {assign, x, {halt}}}, compile(['set!', x, 5])).

@@ -17,3 +17,8 @@ primop_test() ->
     Evaluated = bs_compile:eval(Expr, bs_scheme:env()),
     ?assertEqual(13, Evaluated).
 
+
+if_test() ->
+    Expr = bs_read:read1("(if (quote a) 1 2)"),
+    ?assertEqual(1, bs_compile:eval(Expr)).
+

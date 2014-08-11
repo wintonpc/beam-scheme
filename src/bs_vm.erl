@@ -20,10 +20,17 @@ vm(A, X, E, R, S) ->
         {assign, Var, _X} ->
             bs_env:set(E, Var, A),
             vm(A, _X, E, R, S);
+        {test, Then, Else} ->
+            vm(A, case A of '#f' -> Else; _ -> Then end, E, R, S);
         {apply} ->
             case A of
                 {closure, Body, Env, Vars} ->
                     vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
+                {primop, 0, Fun} ->
+                    case R of
+                        [] -> vm(Fun(), {return}, E, R, S);
+                        Rs -> error({wrong_arg_count, 2, Rs})
+                    end;
                 {primop, 2, Fun} ->
                     case R of
                         [R1, R2] -> vm(Fun(R1, R2), {return}, E, R, S);
@@ -53,4 +60,3 @@ full_stack_test_() ->
      ?_assertEqual(2, bs_compile:eval(bs_read:read1("((lambda (a b) b) 1 2)")))
     ].
     
-

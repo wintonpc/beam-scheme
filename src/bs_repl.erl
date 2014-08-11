@@ -4,8 +4,10 @@
 
 run() ->
     KeyboardBuffer = buffer_stream:make(),
-    spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),    
-    run(bs_read:read(KeyboardBuffer), bs_scheme:env()).
+    Watcher = spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),
+    Env = bs_scheme:env(),
+    bs_env:set(Env, exit, fun() -> exit(repl_exit) end),
+    catch run(bs_read:read(KeyboardBuffer), Env).
 
 run(ExprStream, Env) ->
     io:format("Scheme> "),
