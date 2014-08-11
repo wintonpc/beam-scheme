@@ -6,7 +6,7 @@ eval(X) -> eval(X, bs_env:empty()).
 
 eval(X, Env) ->
     Compiled = compile(X, Env),
-    io:format(user, "~p~n", [Compiled]),
+    %io:format(user, "~p~n", [Compiled]),
     bs_vm:vm(Compiled, Env).
 
 compile(X) -> compile(X, bs_env:empty()).
@@ -29,6 +29,9 @@ compile([quote, Obj], Next, _) ->
 
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
+
+compile(['set!', Var, X], Next, EnvInfo) ->
+    compile(X, {assign, Var, Next}, EnvInfo);
 
 compile([Op|Args], Next, EnvInfo) ->
     Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
@@ -74,6 +77,9 @@ compile_quote_test() ->
 
 compile_lambda_test() ->
     ?assertEqual({close, [x], {refer, x, {return}}, {halt}}, compile([lambda, [x], x])).
+
+compile_set_test() ->
+    ?assertEqual({constant, 5, {assign, x, {halt}}}, compile(['set!', x, 5])).
 
 compile_application_test() ->
     ?assertEqual({frame,

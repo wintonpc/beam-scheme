@@ -8,11 +8,9 @@ apply_lambda_test() ->
 
 set_top_level_test() ->
     Env = bs_env:empty(),
-    SetExpr = bs_read:read1("(set! x 5)"),
-    ReadExpr = bs_Read:read1("x"),
-    bs_compile:eval(SetExpr, Env),
-    Evaluated = bs_compile:eval(ReadExpr, Env),
-    ?assertEqual(5, Evaluated).
+    Exprs = bs_read:read_all("(set! x 5)   x"),
+    Result = lists:foldl(fun(Expr, _) -> bs_compile:eval(Expr, Env) end, nil, Exprs),
+    ?assertEqual(5, Result).
 
 primop_test() ->
     Expr = bs_read:read1("(+ (- 7 4) 10)"),

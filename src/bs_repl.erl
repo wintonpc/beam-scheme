@@ -8,9 +8,10 @@ run() ->
     run(bs_read:read(KeyboardBuffer), bs_scheme:env()).
 
 run(ExprStream, Env) ->
+    io:format("Scheme> "),
     bs_print:print(bs_compile:eval(stream:next(ExprStream), Env)),
     run(ExprStream, Env).
     
 watch_keyboard(Buf) ->
-    buffer_stream:append(Buf, io:get_line("Scheme> ")),
+    buffer_stream:append(Buf, io:get_line("")),
     watch_keyboard(Buf).

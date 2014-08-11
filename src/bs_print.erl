@@ -15,8 +15,12 @@ pretty(Exp) when is_list(Exp) ->
 
 pretty(Exp) when is_atom(Exp) -> atom_to_list(Exp);
 
-pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp])).
-    
+pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
+
+pretty({closure, _, _, _}) -> "#<procedure>";
+
+pretty({primop, _, Fun}) -> io_lib:format("~p", [Fun]).
+
 
 pretty_test_() ->
     [
