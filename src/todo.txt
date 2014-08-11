@@ -1,6 +1,5 @@
-- set! sets top-level if binding not found
-- track environment free/bound vars during compilation
-- primitive procedures
+- booleans
+- make VM code for primitive procedures less sucky
 - strings need to be differentiable from lists
 
 read:
