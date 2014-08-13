@@ -17,11 +17,20 @@ yield(V) ->
 
 next({stream, Pid}) ->
     Pid ! {next, self()},
+    receive_next(Pid).
+
+receive_next(Pid) ->
     receive
         {next_value, Pid, V} -> V;
         {'EXIT', Pid, normal} -> 'STREAM_DONE';
         {'EXIT', Pid, {Reason, StackTrace}} ->
             error(erlang:raise(error, Reason, StackTrace))
+    after
+        100 ->
+            case is_process_alive(Pid) of
+                false -> 'STREAM_DONE';
+                _ -> receive_next(Pid)
+            end
     end.
 
 done() -> 'STREAM_DONE'.
@@ -171,4 +180,14 @@ filter_test_() ->
     Even = fun(X) -> X rem 2 == 0 end,
     [
      ?_assertEqual([2,4], to_list(filter(four(), Even)))
+    ].
+
+end_of_stream_test_() ->
+    S = from_list([1, 2]),
+    [
+     ?_assertEqual(1, next(S)),
+     ?_assertEqual(2, next(S)),
+     ?_assertEqual('STREAM_DONE', next(S)),
+     ?_assertEqual('STREAM_DONE', next(S)),
+     ?_assertEqual('STREAM_DONE', next(S))
     ].
