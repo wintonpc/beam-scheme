@@ -1,6 +1,7 @@
 -module(bs_print).
 -export([print/1]).
 -include_lib("eunit/include/eunit.hrl").
+-include("bs_const.hrl").
 
 print(Exp) ->
     io:format("~s~n", [pretty(Exp)]).
@@ -17,6 +18,9 @@ pretty(Exp) when is_atom(Exp) -> atom_to_list(Exp);
 
 pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
 
+pretty(?TRUE) -> "#t";
+pretty(?FALSE) -> "#f";
+
 pretty({closure, _, _, _}) -> "#<procedure>";
 
 pretty({primop, _, Fun}) -> io_lib:format("~p", [Fun]).
@@ -27,6 +31,8 @@ pretty_test_() ->
      ?_assertEqual("1", pretty(1)),
      ?_assertEqual("-1", pretty(-1)),
      ?_assertEqual("3.14", pretty(3.14)),
+     ?_assertEqual("#t", pretty(?TRUE)),
+     ?_assertEqual("#f", pretty(?FALSE)),
      ?_assertEqual("sym", pretty(sym)),
      %?_assertEqual("\"\"", pretty("")),
      %?_assertEqual("\"a string\"", pretty("a string")),

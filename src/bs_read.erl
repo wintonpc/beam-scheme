@@ -2,6 +2,7 @@
 -compile(export_all).
 -include_lib("eunit/include/eunit.hrl").
 -include("bs_macros.hrl").
+-include("bs_const.hrl").
 
 read(CharStream) -> parse(evaluate(tokenize(CharStream))).
 
@@ -65,6 +66,8 @@ evaluate_token(T) ->
     cond_([
            ?WHEN(T == "("), ?THEN('('),
            ?WHEN(T == ")"), ?THEN(')'),
+           ?WHEN(T == "#f"), ?THEN(?FALSE),
+           ?WHEN(T == "#t"), ?THEN(?TRUE),
            ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T))
           ], ?ELSE(list_to_atom(T))).
 
@@ -148,7 +151,9 @@ evaluate_test_() ->
      ?_assertEqual(999, evaluate_token("+999")),
      ?_assertEqual('(', evaluate_token("(")),
      ?_assertEqual(')', evaluate_token(")")),
-     ?_assertEqual(foo, evaluate_token("foo"))
+     ?_assertEqual(foo, evaluate_token("foo")),
+     ?_assertEqual(?FALSE, evaluate_token("#f")),
+     ?_assertEqual(?TRUE, evaluate_token("#t"))
     ].
 
 parse_test_() ->
