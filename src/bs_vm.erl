@@ -30,7 +30,12 @@ vm(A, X, E, R, S) ->
                 {primop, 0, Fun} ->
                     case R of
                         [] -> vm(Fun(), {return}, E, R, S);
-                        Rs -> error({wrong_arg_count, 2, Rs})
+                        Rs -> error({wrong_arg_count, 0, Rs})
+                     end;
+                {primop, 1, Fun} ->
+                    case R of
+                        [R1] -> vm(Fun(R1), {return}, E, R, S);
+                        Rs -> error({wrong_arg_count, 1, Rs})
                     end;
                 {primop, 2, Fun} ->
                     case R of

@@ -15,5 +15,8 @@ env() ->
     bs_env:set(E, '-', fun erlang:'-'/2),
     bs_env:set(E, '*', fun erlang:'*'/2),
     bs_env:set(E, '=', fun(A, B) -> bool(A == B) end),
+    bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
+    bs_env:set(E, 'car', fun erlang:hd/1),
+    bs_env:set(E, 'cdr', fun erlang:tl/1),
     E.
     
