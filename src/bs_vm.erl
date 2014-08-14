@@ -1,4 +1,5 @@
 -module(bs_vm).
+-include("bs_const.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 -export([vm/2]).
@@ -21,7 +22,7 @@ vm(A, X, E, R, S) ->
             bs_env:set(E, Var, A),
             vm(A, _X, E, R, S);
         {test, Then, Else} ->
-            vm(A, case A of '#f' -> Else; _ -> Then end, E, R, S);
+            vm(A, case A of ?FALSE -> Else; _ -> Then end, E, R, S);
         {apply} ->
             case A of
                 {closure, Body, Env, Vars} ->
@@ -59,4 +60,7 @@ full_stack_test_() ->
      ?_assertEqual(1, bs_compile:eval(bs_read:read1("((lambda (a b) a) 1 2)"))),
      ?_assertEqual(2, bs_compile:eval(bs_read:read1("((lambda (a b) b) 1 2)")))
     ].
+
+if_test() ->
+    ?assertEqual(2, bs_compile:eval(bs_read:read1("((lambda (x) (if x 1 2)) #f)"))).
     
