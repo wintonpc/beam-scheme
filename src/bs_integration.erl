@@ -27,3 +27,9 @@ eval(S) ->
 
 fact_test() ->
     ?assertEqual(120, eval("(set! fact (lambda (x) (if (= x 1) 1 (* x (fact (- x 1))))))   (fact 5)")).
+
+list_test() ->
+    ?assertEqual([1,2,3], eval("(list 1 2 3)")).
+
+vararg_lambda_test() ->
+    ?assertEqual([1,2,3], eval("((lambda L L) 1 2 3)")).

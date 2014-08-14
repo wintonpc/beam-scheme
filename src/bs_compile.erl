@@ -56,6 +56,8 @@ compile_args([Arg|Rest], Compiled, EnvInfo) ->
 is_tail({return}) -> true;
 is_tail(_) -> false.
 
+add_rib(L, VarRibs) when is_atom(L) ->
+    {[L], VarRibs};
 add_rib(Vars, VarRibs) ->
     {Vars, VarRibs}.
 

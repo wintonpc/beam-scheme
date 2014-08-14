@@ -11,6 +11,7 @@ compose(F, G) ->
 
 env() ->
     E = bs_env:empty(),
+    Eval = fun(Code) -> bs_compile:eval(bs_read:read1(Code), E) end,
     bs_env:set(E, '+', fun erlang:'+'/2),
     bs_env:set(E, '-', fun erlang:'-'/2),
     bs_env:set(E, '*', fun erlang:'*'/2),
@@ -18,5 +19,6 @@ env() ->
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
+    Eval("(set! list (lambda L L))"),
     E.
     

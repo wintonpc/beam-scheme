@@ -15,7 +15,7 @@ vm(A, X, E, R, S) ->
         {refer, Var, _X} ->
             vm(bs_env:lookup(Var, E), _X, E, R, S);
         {close, Vars, Body, _X} ->
-            vm(make_closure(Body, E, Vars), _X, E, R, S);
+            vm(make_closure(Vars, Body, E), _X, E, R, S);
         {frame, _X, Ret} -> vm(A, _X, E, [], make_frame(Ret, E, R, S));
         {argument, _X} -> vm(A, _X, E, [A|R], S);
         {assign, Var, _X} ->
@@ -25,6 +25,8 @@ vm(A, X, E, R, S) ->
             vm(A, case A of ?FALSE -> Else; _ -> Then end, E, R, S);
         {apply} ->
             case A of
+                {closure, Body, Env, L} when is_atom(L) ->
+                    vm(A, Body, bs_env:extend(Env, [L], [R]), [], S);
                 {closure, Body, Env, Vars} ->
                     vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
                 {primop, 0, Fun} ->
@@ -49,7 +51,7 @@ vm(A, X, E, R, S) ->
             vm(A, _X, _E, _R, _S)
     end.
         
-make_closure(Body, E, Vars) -> {closure, Body, E, Vars}.
+make_closure(Vars, Body, E) -> {closure, Body, E, Vars}.
 
 make_frame(X, E, R, S) -> {X, E, R, S}.
     
