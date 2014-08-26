@@ -19,6 +19,7 @@ env() ->
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
+    bs_env:set(E, 'append-lists', fun lists:append/1),
     Eval("(set! list (lambda L L))"),
     E.
     

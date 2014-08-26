@@ -43,6 +43,7 @@ gen_tokenize(CharStream, CurrentToken) ->
                 $(  -> YieldChar(Char);
                 $)  -> YieldChar(Char);
                 $'  -> YieldChar(Char);
+                $`  -> YieldChar(Char);
                 $   -> OnWhitespace();
                 $\n -> OnWhitespace();
                 $\r -> OnWhitespace();
@@ -68,6 +69,7 @@ evaluate_token(T) ->
            ?WHEN(T == "("), ?THEN('('),
            ?WHEN(T == ")"), ?THEN(')'),
            ?WHEN(T == "'"), ?THEN('\''),
+           ?WHEN(T == "`"), ?THEN('\`'),
            ?WHEN(T == "#f"), ?THEN(?FALSE),
            ?WHEN(T == "#t"), ?THEN(?TRUE),
            ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T))
@@ -118,6 +120,9 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
         '\'' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue([quote, Parsed]);
+        '\`' ->
+            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
+            AddAndContinue([quasiquote, Parsed]);
         T ->
             AddAndContinue(T)
     end.

@@ -33,3 +33,9 @@ list_test() ->
 
 vararg_lambda_test() ->
     ?assertEqual([1,2,3], eval("((lambda L L) 1 2 3)")).
+
+quasiquote_test_() ->
+    [
+     ?_assertEqual([1,2,3], eval("(quasiquote (1 2 3))")),
+     ?_assertEqual([1,2,3], eval("`(1 2 3)"))
+    ].

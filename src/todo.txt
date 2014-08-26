@@ -1,4 +1,12 @@
+- quasiquote
+- naive define-syntax
+- strings
+- vectors (and reader macro)
 - load
+- letrec
+- begin
+- get psyntax working
+
 - make VM code for primitive procedures less sucky
 - strings need to be differentiable from lists
 

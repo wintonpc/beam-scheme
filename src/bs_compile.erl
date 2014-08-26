@@ -27,6 +27,11 @@ compile(X, Next, {Env, VarRibs}) when is_atom(X) ->
 compile([quote, Obj], Next, _) ->
     {constant, Obj, Next};
 
+compile([quasiquote, Obj], Next, EnvInfo) ->
+    QQ = expand_quasiquote([quasiquote, Obj]),
+    io:format(user, "QQ: ~p  ->  ~p~n", [[quasiquote, Obj], QQ]),
+    compile(QQ, Next, EnvInfo);
+
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
@@ -48,6 +53,17 @@ compile([Op|Args], Next, EnvInfo) ->
 compile(X, Next, _) ->
     {constant, X, Next}.
 
+expand_quasiquote([quasiquote, Obj]) when not is_list(Obj) ->
+    [quote, Obj];
+expand_quasiquote([quasiquote, Obj]) ->
+    ['append-lists', [list|lists:map(fun expand_quasiquote_element/1, Obj)]].
+
+expand_quasiquote_element([unquote, X]) ->
+    [list, expand_quasiquote(X)];
+expand_quasiquote_element(['unquote-splicing', X]) ->
+    expand_quasiquote(X);
+expand_quasiquote_element(X) ->
+    [list, expand_quasiquote([quasiquote, X])].
 
 compile_args([], Compiled, _) -> Compiled;
 compile_args([Arg|Rest], Compiled, EnvInfo) ->
@@ -110,3 +126,4 @@ is_free_identifier_test_() ->
      ?_assert(false == is_free_identifier(d, VarRibs)),
      ?_assert(true == is_free_identifier(e, VarRibs))
     ].
+
