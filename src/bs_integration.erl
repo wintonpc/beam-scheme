@@ -37,5 +37,11 @@ vararg_lambda_test() ->
 quasiquote_test_() ->
     [
      ?_assertEqual([1,2,3], eval("(quasiquote (1 2 3))")),
-     ?_assertEqual([1,2,3], eval("`(1 2 3)"))
+     ?_assertEqual([1,2,3], eval("`(1 2 3)")),
+     ?_assertEqual([1,2,3], eval("(set! x 2) (quasiquote (1 (unquote x) 3))")),
+     ?_assertEqual([1,2,3], eval("(set! x 2) `(1 ,x 3)")),
+     ?_assertEqual([1,23,3], eval("(set! x 11) (set! y 12) `(1 ,(+ x y) 3)")),
+     ?_assertEqual([1, 11, [2, [5, 12]], 3], eval("(set! x 11) (set! y 12) `(1 ,x ,(list 2 `(5 ,y)) 3)")),
+     ?_assertEqual([1,2,3,4], eval("(set! x '(2 3)) (quasiquote (1 (unquote-splicing x) 4))")),
+     ?_assertEqual([1,2,3,4], eval("(set! x '(2 3)) `(1 ,@x 4)"))
     ].

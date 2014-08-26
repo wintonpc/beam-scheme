@@ -27,30 +27,42 @@ tokenize(CharStream) ->
 gen_tokenize(CharStream) -> gen_tokenize(CharStream, []).
 gen_tokenize(CharStream, CurrentToken) ->
     StreamDone = stream:done(),
-    OnWhitespace = fun() -> yield_token(CurrentToken), gen_tokenize(CharStream) end,
-    YieldChar = fun(Char) ->
-                        yield_token(CurrentToken),
-                        yield_token([Char]),
-                        gen_tokenize(CharStream)
-                end,
-                        
     case stream:next(CharStream) of
         StreamDone ->
             yield_token(CurrentToken),
             ok;
         Char ->
-            case Char of
-                $(  -> YieldChar(Char);
-                $)  -> YieldChar(Char);
-                $'  -> YieldChar(Char);
-                $`  -> YieldChar(Char);
-                $   -> OnWhitespace();
-                $\n -> OnWhitespace();
-                $\r -> OnWhitespace();
-                _ ->
-                    gen_tokenize(CharStream, [Char|CurrentToken])
-            end
+            on_char(Char, CharStream, CurrentToken)
     end.
+
+on_char(Char, CharStream, CurrentToken) ->
+    OnWhitespace = fun() -> yield_token(CurrentToken), gen_tokenize(CharStream) end,
+    Yield = fun(X) ->
+                    yield_token(CurrentToken),
+                    yield_token(lists:reverse(X)),
+                    gen_tokenize(CharStream)
+            end,
+    
+    case Char of
+        $(  -> Yield([Char]);
+        $)  -> Yield([Char]);
+        $'  -> Yield([Char]);
+        $`  -> Yield([Char]);
+        $,  ->
+            case stream:next(CharStream) of
+                $@ -> Yield(",@");
+                Char2 ->
+                    yield_token(CurrentToken),
+                    yield_token([Char]),
+                    on_char(Char2, CharStream, CurrentToken)
+            end;
+        $   -> OnWhitespace();
+        $\n -> OnWhitespace();
+        $\r -> OnWhitespace();
+        _ ->
+            gen_tokenize(CharStream, [Char|CurrentToken])
+    end.
+    
 
 yield_token(T) ->
     case T of
@@ -69,7 +81,9 @@ evaluate_token(T) ->
            ?WHEN(T == "("), ?THEN('('),
            ?WHEN(T == ")"), ?THEN(')'),
            ?WHEN(T == "'"), ?THEN('\''),
-           ?WHEN(T == "`"), ?THEN('\`'),
+           ?WHEN(T == "`"), ?THEN('`'),
+           ?WHEN(T == ","), ?THEN(','),
+           ?WHEN(T == ",@"), ?THEN(',@'),
            ?WHEN(T == "#f"), ?THEN(?FALSE),
            ?WHEN(T == "#t"), ?THEN(?TRUE),
            ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T))
@@ -120,9 +134,15 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
         '\'' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue([quote, Parsed]);
-        '\`' ->
+        '`' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue([quasiquote, Parsed]);
+        ',' ->
+            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
+            AddAndContinue([unquote, Parsed]);
+        ',@' ->
+            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
+            AddAndContinue(['unquote-splicing', Parsed]);
         T ->
             AddAndContinue(T)
     end.
@@ -163,7 +183,9 @@ tokenize_test_() ->
      ?_assertEqual(["01", "23"], toks("01\r\n23")),
      ?_assertEqual(["(", "foo", ")"], toks("(foo)")),
      ?_assertEqual(["'", "x"], toks("'x")),
-     ?_assertEqual(["'", "(", "1", "2", ")"], toks("'(1 2)"))
+     ?_assertEqual(["'", "(", "1", "2", ")"], toks("'(1 2)")),
+     ?_assertEqual([",@", "(", "+", "y", "z", ")"], toks(",@(+ y z)")),
+     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))"))
     ].
 
 evaluate_test_() ->

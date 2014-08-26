@@ -1,5 +1,5 @@
 -module(bs_print).
--export([print/1]).
+-export([print/1, pretty/1]).
 -include_lib("eunit/include/eunit.hrl").
 -include("bs_const.hrl").
 

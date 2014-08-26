@@ -29,7 +29,7 @@ compile([quote, Obj], Next, _) ->
 
 compile([quasiquote, Obj], Next, EnvInfo) ->
     QQ = expand_quasiquote([quasiquote, Obj]),
-    io:format(user, "QQ: ~p  ->  ~p~n", [[quasiquote, Obj], QQ]),
+    %io:format(user, "QQ: ~s  ->  ~s~n", [bs_print:pretty([quasiquote, Obj]), bs_print:pretty(QQ)]),
     compile(QQ, Next, EnvInfo);
 
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
@@ -59,9 +59,9 @@ expand_quasiquote([quasiquote, Obj]) ->
     ['append-lists', [list|lists:map(fun expand_quasiquote_element/1, Obj)]].
 
 expand_quasiquote_element([unquote, X]) ->
-    [list, expand_quasiquote(X)];
+    [list, X];
 expand_quasiquote_element(['unquote-splicing', X]) ->
-    expand_quasiquote(X);
+    X;
 expand_quasiquote_element(X) ->
     [list, expand_quasiquote([quasiquote, X])].
 
