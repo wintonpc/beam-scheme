@@ -20,6 +20,7 @@ env() ->
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
     bs_env:set(E, 'append-lists', fun lists:append/1),
+    bs_env:set(E, 'list-ref', fun(List, N) -> lists:nth(N + 1, List) end),
     Eval("(set! list (lambda L L))"),
     E.
     

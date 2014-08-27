@@ -4,7 +4,9 @@
 -compile(export_all).
 -export([vm/2]).
 
-vm(X, Env) -> vm([], X, Env, [], []).
+vm(X, Env) ->
+    %io:format(user, "Running: ~p~n", [X]),
+    vm([], X, Env, [], []).
 
 vm(A, X, E, R, S) ->
     %io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),

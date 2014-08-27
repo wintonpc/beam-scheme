@@ -6,8 +6,10 @@ eval(X) -> eval(X, bs_env:empty()).
 
 eval(X, Env) ->
     Compiled = compile(X, Env),
-    %io:format(user, "~p~n", [Compiled]),
-    bs_vm:vm(Compiled, Env).
+    %io:format(user, "eval:~n==> ~s~n~p~n", [bs_print:pretty(X), Compiled]),
+    Result = bs_vm:vm(Compiled, Env),
+    %io:format(user, "<== ~s~n", [bs_print:pretty(Result)]),
+    Result.
 
 compile(X) -> compile(X, bs_env:empty()).
 
@@ -15,13 +17,23 @@ compile(X, Env) -> compile(X, {halt}, {Env, nil}).
 
 compile(X, Next, {Env, VarRibs}) when is_atom(X) ->
     %io:format(user, "compiling a reference~n", []),
-    case {is_free_identifier(X, VarRibs), bs_env:try_lookup(X, Env)} of
-        {true, {found, Fun}} when is_function(Fun) ->
-            %io:format(user, "compiling primop~n", []),
-            {constant, {primop, arity(Fun), Fun}, Next};
-        _ ->
-            %io:format(user, "reference: ~p~n", [Foo]),
-            {refer, X, Next}
+    Refer = fun() -> {refer, X, Next} end,
+    
+    case bs_env:try_lookup(X, Env) of
+        not_found -> Refer();
+        {found, Obj} ->
+            case Obj of
+                {transformer, Tx} ->
+                    compile(expand(Tx, X, {Env, VarRibs}), Next, {Env, VarRibs});
+                Thing ->
+                    case {is_free_identifier(X, VarRibs), Thing} of
+                        {true, Fun} when is_function(Fun) ->
+                            %io:format(user, "compiling primop~n", []),
+                            {constant, {primop, arity(Fun), Fun}, Next};
+                        _ -> Refer()
+                    end
+            end;
+        _ -> Refer()
     end;
 
 compile([quote, Obj], Next, _) ->
@@ -35,6 +47,10 @@ compile([quasiquote, Obj], Next, EnvInfo) ->
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
+compile(['define-syntax', Keyword, Transformer], {halt}, {Env, VarRibs}) ->
+    bs_env:set(Env, Keyword, {transformer, Transformer}),
+    {halt};
+
 compile(['if', Test, Then, Else], Next, EnvInfo) ->
     ThenC = compile(Then, Next, EnvInfo),
     ElseC = compile(Else, Next, EnvInfo),
@@ -43,15 +59,27 @@ compile(['if', Test, Then, Else], Next, EnvInfo) ->
 compile(['set!', Var, X], Next, EnvInfo) ->
     compile(X, {assign, Var, Next}, EnvInfo);
 
-compile([Op|Args], Next, EnvInfo) ->
-    Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
-    case is_tail(Next) of
-        true -> Compiled;
-        false -> {frame, Compiled, Next}
+compile([Op|Args], Next, {Env, VarRibs}) ->
+    EnvInfo = {Env, VarRibs},
+    case is_atom(Op) andalso bs_env:try_lookup(Op, Env) of
+        {found, {transformer, Tx}} ->
+            %io:format(user, "encountered syntax: ~s~n", [bs_print:pretty([Op|Args])]),
+            compile(expand(Tx, [Op|Args], EnvInfo), Next, EnvInfo);
+        _ ->
+            Compiled = compile_args(Args, compile(Op, {apply}, EnvInfo), EnvInfo),
+            case is_tail(Next) of
+                true -> Compiled;
+                false -> {frame, Compiled, Next}
+            end
     end;
 
 compile(X, Next, _) ->
     {constant, X, Next}.
+
+expand(Tx, Stx, {Env, VarRibs}) ->
+    Expanded = eval([Tx, [quote, Stx]], Env),
+    %io:format(user, "expand: ~s  ->  ~s~n", [bs_print:pretty(Stx), bs_print:pretty(Expanded)]),
+    Expanded.
 
 expand_quasiquote([quasiquote, Obj]) when not is_list(Obj) ->
     [quote, Obj];

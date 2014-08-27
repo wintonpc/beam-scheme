@@ -45,3 +45,10 @@ quasiquote_test_() ->
      ?_assertEqual([1,2,3,4], eval("(set! x '(2 3)) (quasiquote (1 (unquote-splicing x) 4))")),
      ?_assertEqual([1,2,3,4], eval("(set! x '(2 3)) `(1 ,@x 4)"))
     ].
+
+define_syntax_test_() ->
+    [
+     ?_assertEqual(5, eval("(define-syntax five (lambda (x) 5)) five")),
+     ?_assertEqual(5, eval("(define-syntax five (lambda (x) 5)) (five)")),
+     ?_assertEqual(8, eval("(define-syntax c+ (lambda (x) (+ (list-ref x 1) (list-ref x 2)))) (c+ 3 5)"))
+    ].
