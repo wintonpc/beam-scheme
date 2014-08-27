@@ -1,8 +1,10 @@
-- quasiquote
 - naive define-syntax
+  - load
+  - generate temporaries
+    - gensym
+  - (or) macro
 - strings
 - vectors (and reader macro)
-- load
 - letrec
 - begin
 - get psyntax working
