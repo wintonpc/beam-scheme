@@ -6,7 +6,7 @@
 
 vm(X, Env) ->
     %io:format(user, "Running: ~p~n", [X]),
-    vm([], X, Env, [], []).
+    vm(?VOID, X, Env, [], []).
 
 vm(A, X, E, R, S) ->
     %io:format("vm(~p, ~p, ~p, ~p, ~p)~n", [A, X, E, R, S]),
@@ -22,7 +22,7 @@ vm(A, X, E, R, S) ->
         {argument, _X} -> vm(A, _X, E, [A|R], S);
         {assign, Var, _X} ->
             bs_env:set(E, Var, A),
-            vm(A, _X, E, R, S);
+            vm(?VOID, _X, E, R, S);
         {test, Then, Else} ->
             vm(A, case A of ?FALSE -> Else; _ -> Then end, E, R, S);
         {apply} ->

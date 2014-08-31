@@ -41,7 +41,8 @@ load(File, Env) ->
     %io:format(user, "in '~p', opening '~p'~n", [file:get_cwd(), File]),
     {ok, Content} = file:read_file(File),
     ExprStream = bs_read:read(stream:from_list(binary_to_list(Content))),
-    eval_all(ExprStream, Env).
+    eval_all(ExprStream, Env),
+    ?VOID.
 
 eval_all(ExprStream, Env) ->
     StreamDone = stream:done(),

@@ -4,7 +4,11 @@
 -include("bs_const.hrl").
 
 print(Exp) ->
-    io:format("~s~n", [pretty(Exp)]).
+    Prettified = pretty(Exp),
+    case Prettified of
+        "" -> ok;
+        _ -> io:format("~s~n", [Prettified])
+    end.
 
 pretty(Exp) when is_binary(Exp) ->
     "\"" ++ escape_string(binary_to_list(Exp)) ++ "\"";
@@ -18,6 +22,7 @@ pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
 
 pretty(?TRUE) -> "#t";
 pretty(?FALSE) -> "#f";
+pretty(?VOID) -> "";
 
 pretty({closure, _, _, _}) -> "#<procedure>";
 

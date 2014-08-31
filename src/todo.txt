@@ -1,7 +1,4 @@
 - naive define-syntax
-  - generate temporaries
-    - gensym
-  - (or) macro
 - void object
 - stream exception doesn't always kill process that made the stream ??
 - replace STREAM_DONE with {ok, _} or end_of_stream return values.
