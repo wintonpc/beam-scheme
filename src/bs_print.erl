@@ -6,12 +6,10 @@
 print(Exp) ->
     io:format("~s~n", [pretty(Exp)]).
 
+pretty(Exp) when is_binary(Exp) ->
+    "\"" ++ escape_string(binary_to_list(Exp)) ++ "\"";
+
 pretty(Exp) when is_list(Exp) ->
-    % IsString = io_lib:printable_list(Exp),
-    % case IsString of
-    %     true -> hd(io_lib:format("~p", [Exp]));
-    %     false -> "(" ++ lists:map(fun pretty/1, Exp) ++ ")"
-    % end;
     "(" ++ string:join(lists:map(fun pretty/1, Exp), " ") ++ ")";
 
 pretty(Exp) when is_atom(Exp) -> atom_to_list(Exp);
@@ -25,6 +23,18 @@ pretty({closure, _, _, _}) -> "#<procedure>";
 
 pretty({primop, _, Fun}) -> io_lib:format("~p", [Fun]).
 
+escape_string(S) -> escape_string(S, []).
+escape_string(S, Acc) ->
+    case S of
+        "" -> lists:reverse(Acc);
+        [H|T] ->
+            case H of
+                $\\ -> escape_string(T, [$\\|[$\\|Acc]]);
+                $"  -> escape_string(T, [$"|[$\\|Acc]]);
+                _   -> escape_string(T, [H|Acc])
+            end
+    end.
+            
 
 pretty_test_() ->
     [
@@ -34,10 +44,9 @@ pretty_test_() ->
      ?_assertEqual("#t", pretty(?TRUE)),
      ?_assertEqual("#f", pretty(?FALSE)),
      ?_assertEqual("sym", pretty(sym)),
-     %?_assertEqual("\"\"", pretty("")),
-     %?_assertEqual("\"a string\"", pretty("a string")),
-     %?_assertEqual("\"say \\\"hello\\\"\"", pretty("say \"hello\"")),
      ?_assertEqual("()", pretty([])),
      ?_assertEqual("(foo)", pretty([foo])),
-     ?_assertEqual("(foo bar)", pretty([foo, bar]))
+     ?_assertEqual("(foo bar)", pretty([foo, bar])),
+     ?_assertEqual("\"woman\"", pretty(<<"woman">>)),
+     ?_assertEqual("\"hello \\\\ \\\"hi!\\\"\"", pretty(<<"hello \\ \"hi!\"">>))
     ].

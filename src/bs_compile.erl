@@ -47,7 +47,7 @@ compile([quasiquote, Obj], Next, EnvInfo) ->
 compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
     {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
 
-compile(['define-syntax', Keyword, Transformer], {halt}, {Env, VarRibs}) ->
+compile(['define-syntax', Keyword, Transformer], {halt}, {Env, _}) ->
     bs_env:set(Env, Keyword, {transformer, Transformer}),
     {halt};
 
@@ -76,7 +76,7 @@ compile([Op|Args], Next, {Env, VarRibs}) ->
 compile(X, Next, _) ->
     {constant, X, Next}.
 
-expand(Tx, Stx, {Env, VarRibs}) ->
+expand(Tx, Stx, {Env, _}) ->
     Expanded = eval([Tx, [quote, Stx]], Env),
     %io:format(user, "expand: ~s  ->  ~s~n", [bs_print:pretty(Stx), bs_print:pretty(Expanded)]),
     Expanded.

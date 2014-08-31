@@ -56,17 +56,31 @@ on_char(Char, CharStream, CurrentToken) ->
                     yield_token([Char]),
                     on_char(Char2, CharStream, CurrentToken)
             end;
+        $"  ->
+            yield_token(CurrentToken),
+            yield_token(list_to_binary(read_string_token(CharStream))),
+            gen_tokenize(CharStream);
         $   -> OnWhitespace();
         $\n -> OnWhitespace();
         $\r -> OnWhitespace();
         _ ->
             gen_tokenize(CharStream, [Char|CurrentToken])
     end.
-    
+
+read_string_token(CharStream) ->
+    lists:reverse(read_string_token(CharStream, [])).
+
+read_string_token(CharStream, CurrentToken) ->
+    case stream:next(CharStream) of
+        $\\ -> read_string_token(CharStream, [stream:next(CharStream)|CurrentToken]);
+        $" -> CurrentToken;
+        Char -> read_string_token(CharStream, [Char|CurrentToken])
+    end.
 
 yield_token(T) ->
     case T of
         [] -> ok;
+        X when is_binary(X) -> stream:yield(T);
         _ -> stream:yield(lists:reverse(T))
     end.
 
@@ -86,6 +100,7 @@ evaluate_token(T) ->
            ?WHEN(T == ",@"), ?THEN(',@'),
            ?WHEN(T == "#f"), ?THEN(?FALSE),
            ?WHEN(T == "#t"), ?THEN(?TRUE),
+           ?WHEN(is_binary(T)), ?THEN(T),
            ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T))
           ], ?ELSE(list_to_atom(T))).
 
@@ -175,18 +190,21 @@ toks(String) ->
 
 tokenize_test_() ->
    [
-     ?_assertEqual([], toks("")),
-     ?_assertEqual(["0"], toks("0")),
-     ?_assertEqual(["01"], toks("01")),
-     ?_assertEqual(["0", "1"], toks("0 1")),
-     ?_assertEqual(["01", "23"], toks("01 23")),
-     ?_assertEqual(["01", "23"], toks("01\r\n23")),
-     ?_assertEqual(["(", "foo", ")"], toks("(foo)")),
-     ?_assertEqual(["'", "x"], toks("'x")),
-     ?_assertEqual(["'", "(", "1", "2", ")"], toks("'(1 2)")),
-     ?_assertEqual([",@", "(", "+", "y", "z", ")"], toks(",@(+ y z)")),
-     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))"))
-    ].
+    ?_assertEqual([], toks("")),
+    ?_assertEqual(["0"], toks("0")),
+    ?_assertEqual(["01"], toks("01")),
+    ?_assertEqual(["0", "1"], toks("0 1")),
+    ?_assertEqual(["01", "23"], toks("01 23")),
+    ?_assertEqual(["01", "23"], toks("01\r\n23")),
+    ?_assertEqual(["(", "foo", ")"], toks("(foo)")),
+    ?_assertEqual(["'", "x"], toks("'x")),
+    ?_assertEqual(["'", "(", "1", "2", ")"], toks("'(1 2)")),
+    ?_assertEqual([",@", "(", "+", "y", "z", ")"], toks(",@(+ y z)")),
+    ?_assertEqual([<<"hello">>], toks("\"hello\"")),
+    ?_assertEqual([<<"hello there">>], toks("\"hello there\"")),
+    ?_assertEqual([<<"scheme says, \"hello there\"">>], toks("\"scheme says, \\\"hello there\\\"\"")),
+    ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))"))
+   ].
 
 evaluate_test_() ->
     [
@@ -199,7 +217,8 @@ evaluate_test_() ->
      ?_assertEqual(')', evaluate_token(")")),
      ?_assertEqual(foo, evaluate_token("foo")),
      ?_assertEqual(?FALSE, evaluate_token("#f")),
-     ?_assertEqual(?TRUE, evaluate_token("#t"))
+     ?_assertEqual(?TRUE, evaluate_token("#t")),
+     ?_assertEqual(<<"hello">>, evaluate_token(<<"hello">>))
     ].
 
 parse_test_() ->
