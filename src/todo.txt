@@ -3,7 +3,10 @@
   - generate temporaries
     - gensym
   - (or) macro
-- strings
+- void object
+- stream exception doesn't always kill process that made the stream ??
+- replace STREAM_DONE with {ok, _} or end_of_stream return values.
+- print primitive procedures nicely with their name
 - vectors (and reader macro)
 - letrec
 - begin

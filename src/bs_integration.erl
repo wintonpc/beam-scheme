@@ -52,3 +52,6 @@ define_syntax_test_() ->
      ?_assertEqual(5, eval("(define-syntax five (lambda (x) 5)) (five)")),
      ?_assertEqual(8, eval("(define-syntax c+ (lambda (x) (+ (list-ref x 1) (list-ref x 2)))) (c+ 3 5)"))
     ].
+
+load_test() ->
+    ?assertEqual(12, eval("(load \"../fixtures/x5y7.bs\")  (+ x y)")).

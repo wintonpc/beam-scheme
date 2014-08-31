@@ -42,7 +42,7 @@ to_list(E, Acc) ->
         V -> to_list(E, [V|Acc])
     end.
 
-from_list(List) ->
+from_list(List) when is_list(List) ->
     make(fun() -> gen_from_list(List) end).
 
 gen_from_list(List) ->
