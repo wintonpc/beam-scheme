@@ -4,7 +4,7 @@
 
 run() ->
     KeyboardBuffer = buffer_stream:make(),
-    Watcher = spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),
+    spawn_link(fun() -> watch_keyboard(KeyboardBuffer) end),
     Env = bs_scheme:env(),
     bs_env:set(Env, exit, fun() -> exit(repl_exit) end),
     catch run(bs_read:read(KeyboardBuffer), Env).

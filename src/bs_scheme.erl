@@ -25,6 +25,7 @@ env() ->
     bs_env:set(E, 'cwd', fun() -> {ok, Path} = file:get_cwd(), list_to_binary(Path) end),
     bs_env:set(E, 'list-ref', fun(List, N) -> lists:nth(N + 1, List) end),
     bs_env:set(E, 'load', fun(File) -> load(File, E) end),
+    bs_env:set(E, 'expand', fun(Expr, Keywords) -> expand(Expr, Keywords, E) end),
 
     % {SourceFile, _} = filename:find_src(bs_scheme, [{"ebin", "src"}]),
     % Dir = filename:dirname(SourceFile),
@@ -59,7 +60,7 @@ eval_all(ExprStream, Env) ->
 gensym([], Numbers) ->
     gensym([g], Numbers);
 gensym([Name], Numbers) ->
-    list_to_atom(lists:flatten(io_lib:format("~p-~p", [Name, stream:next(Numbers)]))).
+    list_to_atom(lists:flatten(io_lib:format("^~p~p", [Name, stream:next(Numbers)]))).
 
 null_p([]) -> ?TRUE;
 null_p(_) -> ?FALSE.
@@ -71,3 +72,19 @@ transform_let([_, Bindings, Body]) ->
     Names = lists:map(fun first/1, Bindings),
     Exprs = lists:map(fun second/1, Bindings),
     [[lambda, Names, Body]|Exprs].
+
+expand(Expr, Keywords, Env) -> expand(Expr, [], Keywords, Env).
+
+expand(Last, Last, _, _) -> Last;
+expand(Stx, _, Keywords, Env) when is_list(Stx)->
+    [Op|_] = Stx,
+    case is_atom(Op) andalso lists:any(fun(KW) -> KW == Op end, Keywords) of
+        false -> lists:map(fun(Expr) -> expand(Expr, Keywords, Env) end, Stx);
+        true ->
+            {transformer, Tx} = bs_env:lookup(Op, Env),
+            expand(bs_compile:expand(Tx, Stx, Env), Stx, Keywords, Env)
+    end;
+
+expand(X, _, _, _) -> X.
+
+    

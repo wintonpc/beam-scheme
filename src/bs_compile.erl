@@ -1,6 +1,6 @@
 -module(bs_compile).
 -include_lib("eunit/include/eunit.hrl").
--export([compile/2, eval/1, eval/2]).
+-export([compile/2, eval/1, eval/2, expand/3]).
 
 eval(X) -> eval(X, bs_env:empty()).
 
@@ -76,7 +76,9 @@ compile([Op|Args], Next, {Env, VarRibs}) ->
 compile(X, Next, _) ->
     {constant, X, Next}.
 
-expand(Tx, Stx, {Env, _}) ->
+expand(Tx, Stx, {Env, _}) when Env /= bs_env ->
+    expand(Tx, Stx, Env);
+expand(Tx, Stx, Env) -> 
     Expanded = eval([Tx, [quote, Stx]], Env),
     %io:format(user, "expand: ~s  ->  ~s~n", [bs_print:pretty(Stx), bs_print:pretty(Expanded)]),
     Expanded.
