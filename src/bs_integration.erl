@@ -1,5 +1,6 @@
 -module(bs_integration).
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("bs_const.hrl").
 
 apply_lambda_test() ->
     Expr = bs_read:read1("((lambda (a b) b) 1 2)"),
@@ -58,3 +59,12 @@ load_test() ->
 
 let_test() ->
     ?assertEqual(12, eval("(let ((x 5) (y 7)) (+ x y))")).
+
+or_test_() ->
+    [
+     ?_assertEqual(?FALSE, eval("(or)")),
+     ?_assertEqual(?FALSE, eval("(or #f)")),
+     ?_assertEqual(1, eval("(or 1)")),
+     ?_assertEqual(1, eval("(or 1 2)")),
+     ?_assertEqual(5, eval("(or #f #f #f #f 5)"))
+    ].

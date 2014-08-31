@@ -5,3 +5,17 @@
     (if (null? xs)
         '()
         (cons (gensym) (generate-temporaries (cdr xs))))))
+
+(set! #%or-transformer
+  (lambda (x)
+    (if (= (length x) 1)
+        #f
+        (let ((exp0 (car (cdr x)))
+              (exps (cdr (cdr x))))
+          (if (= (length x) 2)
+              exp0
+              (let ((t (gensym 't)))
+                `(let ((,t ,exp0))
+                   (if ,t ,t (or ,@exps)))))))))
+
+(define-syntax or #%or-transformer)
