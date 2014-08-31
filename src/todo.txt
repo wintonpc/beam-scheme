@@ -1,12 +1,22 @@
-- naive define-syntax
-- void object
+- get psyntax working
+  - comments
+  - dotted pairs, improper lists
+  - apply
+  - eval
+  - lambda dot notation
+  - letrec
+  - define (scheme impl)
+  - vectors (and reader macro)
+    - vector, -length, -ref, -set!, vector?, list->vector
+  - lists
+    - list, list?, list-ref, list->string
+  - values, call-with-values
+  - begin
+- match (erlang impl)
+- cond
 - stream exception doesn't always kill process that made the stream ??
 - replace STREAM_DONE with {ok, _} or end_of_stream return values.
 - print primitive procedures nicely with their name
-- vectors (and reader macro)
-- letrec
-- begin
-- get psyntax working
 
 - make VM code for primitive procedures less sucky
 - strings need to be differentiable from lists
