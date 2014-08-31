@@ -1,5 +1,5 @@
 -module(stream).
--export([make/1, destroy/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2]).
+-export([make/1, destroy/1, yield/1, next/1, done/0, to_list/1, from_list/1, map/2, filter/2, naturals/0]).
 -include_lib("eunit/include/eunit.hrl").
 
 make(G) ->

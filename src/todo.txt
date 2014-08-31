@@ -1,5 +1,4 @@
 - naive define-syntax
-  - load
   - generate temporaries
     - gensym
   - (or) macro

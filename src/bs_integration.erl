@@ -55,3 +55,6 @@ define_syntax_test_() ->
 
 load_test() ->
     ?assertEqual(12, eval("(load \"../fixtures/x5y7.bs\")  (+ x y)")).
+
+let_test() ->
+    ?assertEqual(12, eval("(let ((x 5) (y 7)) (+ x y))")).

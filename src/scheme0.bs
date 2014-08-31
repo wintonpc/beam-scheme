@@ -1,0 +1,7 @@
+(set! list (lambda L L))
+(set! gensym (lambda L (#%gensym L)))
+(set! generate-temporaries
+  (lambda (xs)
+    (if (null? xs)
+        '()
+        (cons (gensym) (generate-temporaries (cdr xs))))))
