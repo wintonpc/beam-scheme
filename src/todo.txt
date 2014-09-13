@@ -1,15 +1,22 @@
 - get psyntax working
+  - lists
+    - list, list?, list-ref, list->string, pair?, null?
+  - vectors (and reader macro)
+    - vector, -length, -ref, -set!, vector?, list->vector
+  - hashtables
+    - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!
+  - or, and, not, eq?, equal?
+  - symbol->string, string->symbol, symbol?
+  - procedure?
+  - string-append, string?
   - comments
   - dotted pairs, improper lists
+  - map (1-arg only)
   - apply
   - eval
   - lambda dot notation
   - letrec
   - define (scheme impl)
-  - vectors (and reader macro)
-    - vector, -length, -ref, -set!, vector?, list->vector
-  - lists
-    - list, list?, list-ref, list->string
   - values, call-with-values
   - begin
 - match (erlang impl)
