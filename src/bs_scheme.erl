@@ -109,6 +109,17 @@ symbol_to_string(Sym) ->
 string_to_symbol(Str) ->
     list_to_atom(string_s2e(Str)).
 
+list_to_vector(List) ->
+    Length = length(List),
+    {vector, box:make(copy_list_to_array(List, array:new(Length), 0, Length))}.
+
+copy_list_to_array([], Array, Index, Index) -> Array;
+copy_list_to_array([H|T], Array, Index, Length) ->
+    copy_list_to_array(T, array:set(Index, H, Array), Index + 1, Length).
+
+vector_to_list({vector, Box}) ->
+    array:to_list(box:get(Box)).
+
 first([X|_]) -> X.
 second([_, X|_]) -> X.
 

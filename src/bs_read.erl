@@ -71,7 +71,10 @@ on_char(Char, CharStream, CurrentToken) ->
                             yield_token({char, LitChar}),
                             gen_tokenize(CharStream)
                     end;
-                $% -> gen_tokenize(CharStream, "%#")
+                $% -> gen_tokenize(CharStream, "%#");
+                Char2 ->
+                    yield_token([Char]),
+                    on_char(Char2, CharStream, CurrentToken)
             end;
         $"  ->
             yield_token(CurrentToken),
@@ -106,12 +109,6 @@ evaluate(TokenStream) ->
 
 evaluate_token(T) ->
     cond_([
-           ?WHEN(T == "("), ?THEN('('),
-           ?WHEN(T == ")"), ?THEN(')'),
-           ?WHEN(T == "'"), ?THEN('\''),
-           ?WHEN(T == "`"), ?THEN('`'),
-           ?WHEN(T == ","), ?THEN(','),
-           ?WHEN(T == ",@"), ?THEN(',@'),
            ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T)),
            ?WHEN(is_list(T)), ?THEN(list_to_atom(T))
           ], ?ELSE(T)).
@@ -161,6 +158,9 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
         '\'' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue([quote, Parsed]);
+        '#' ->
+            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
+            AddAndContinue(bs_scheme:list_to_vector(Parsed));
         '`' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue([quasiquote, Parsed]);
@@ -217,7 +217,8 @@ tokenize_test_() ->
     ?_assertEqual([<<"scheme says, \"hello there\"">>], toks("\"scheme says, \\\"hello there\\\"\"")),
     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))")),
     ?_assertEqual([?TRUE], toks("#t")),
-    ?_assertEqual([?FALSE], toks("#f"))
+    ?_assertEqual([?FALSE], toks("#f")),
+    ?_assertEqual(["#", "(", "1", "2", ")"], toks("#(1 2)"))
    ].
 
 evaluate_test_() ->
@@ -238,18 +239,21 @@ evaluate_test_() ->
 
 parse_test_() ->
     [
-     ?_assertEqual([foo], read_all("foo")),
+     ?_assertEqual(foo, read1("foo")),
      ?_assertEqual([foo, bar], read_all("foo bar")),
-     ?_assertEqual([[]], read_all("()")),
-     ?_assertEqual([[foo]], read_all("(foo)")),
-     ?_assertEqual([?FALSE], read_all("#f")),
-     ?_assertEqual([?TRUE], read_all("#t")),
-     ?_assertEqual([{char, $x}], read_all("#\\x")),
-     ?_assertEqual([[quote, [?TRUE]]], read_all("'(#t)")),
+     ?_assertEqual([], read1("()")),
+     ?_assertEqual([foo], read1("(foo)")),
+     ?_assertEqual(?FALSE, read1("#f")),
+     ?_assertEqual(?TRUE, read1("#t")),
+     ?_assertEqual({char, $x}, read1("#\\x")),
+     ?_assertEqual([quote, [?TRUE]], read1("'(#t)")),
      ?_assertEqual([a, [b, c], d], read_all("a (b c) d")),
      ?_assertEqual([a, [b, [x, y, z], c], d], read_all("a (b (x y z) c) d")),
      ?_assertEqual([[quote, x], [quote, y]], read_all("'x 'y")),
      ?_assertEqual([[quote, [1, 2]], [quote, [3, 4]]], read_all("'(1 2) '(3 4)")),
+     ?_assertEqual([], bs_scheme:vector_to_list(read1("#()"))),
+     ?_assertEqual([foo], bs_scheme:vector_to_list(read1("#(foo)"))),
+     ?_assertEqual([1, 2], bs_scheme:vector_to_list(read1("#(1 2)"))),
 
      ?_assertError({mismatched, ')'}, read_all(")")),
      ?_assertError({mismatched, ')'}, read_all("x)")),
@@ -259,3 +263,11 @@ parse_test_() ->
 
 read_test() ->
     ?assertEqual([[[lambda, [a, b], a], 1, 2]], read_all("((lambda (a b) a) 1 2)")).
+
+quote_test_() ->
+    [
+     ?_assertEqual([[quote, [1, 2]]], read_all("'(1 2)")),
+     ?_assertEqual([[quote, [quote, [1, 2]]]], read_all("''(1 2)")),
+     ?_assertEqual([[quote, [quote, [quote, [1, 2]]]]], read_all("'''(1 2)")),
+     ?_assertEqual([[quote, [1, [quote, [2]], 3]]], read_all("'(1 '(2) 3)"))
+    ].

@@ -1,6 +1,6 @@
 - get psyntax working
   - vectors (and reader macro)
-    - vector, -length, -ref, -set!, vector?, list->vector
+    - vector, -length, -ref, -set!, vector?, list->vector, vector->list
   - hashtables
     - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!
   - or, and, not, eq?, equal?
