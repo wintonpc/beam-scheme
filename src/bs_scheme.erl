@@ -4,6 +4,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 
+bool(true) -> ?TRUE;
+bool(false) -> ?FALSE.
+
 env() ->
     E = bs_env:empty(),
     Eval = fun(Code) -> bs_compile:eval(bs_read:read1(Code), E) end,
@@ -11,18 +14,21 @@ env() ->
     bs_env:set(E, '+', fun erlang:'+'/2),
     bs_env:set(E, '-', fun erlang:'-'/2),
     bs_env:set(E, '*', fun erlang:'*'/2),
-    bs_env:set(E, '=', fun erlang:'=='/2),
-    bs_env:set(E, 'equal?', fun erlang:'=='/2),
+    bs_env:set(E, '=', fun equals/2),
+    bs_env:set(E, 'eq?', fun eq_p/2),
+    bs_env:set(E, 'equal?', fun equal_p/2),
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
     bs_env:set(E, 'null?', fun null_p/1),
-    bs_env:set(E, 'list?', fun bs_scheme:list_p/1),
-    bs_env:set(E, 'list->string', fun bs_scheme:list_to_string/1),
-    bs_env:set(E, 'string->list', fun bs_scheme:string_to_list/1),
-    bs_env:set(E, 'string?', fun erlang:is_binary/1),
-    bs_env:set(E, '#%string-append', fun bs_scheme:string_append/1),
-    bs_env:set(E, 'pair?', fun bs_scheme:pair_p/1),
+    bs_env:set(E, 'list?', fun list_p/1),
+    bs_env:set(E, 'list->string', fun list_to_string/1),
+    bs_env:set(E, 'string->list', fun string_to_list/1),
+    bs_env:set(E, 'symbol->string', fun symbol_to_string/1),
+    bs_env:set(E, 'string->symbol', fun string_to_symbol/1),
+    bs_env:set(E, 'string?', fun string_p/1),
+    bs_env:set(E, '#%string-append', fun string_append/1),
+    bs_env:set(E, 'pair?', fun pair_p/1),
     bs_env:set(E, 'append-lists', fun lists:append/1),
     bs_env:set(E, 'length', fun erlang:length/1),
     bs_env:set(E, '#%gensym', fun(L) -> gensym(L, GensymNumbers) end),
@@ -64,15 +70,21 @@ gensym([], Numbers) ->
 gensym([Name], Numbers) ->
     list_to_atom(lists:flatten(io_lib:format("^~p~p", [Name, stream:next(Numbers)]))).
 
-null_p([]) -> true;
-null_p(_) -> false.
+equals(A, B) -> bool(A == B).
+eq_p(A, B) -> bool(A == B).
+equal_p(A, B) -> bool(A == B).
 
-list_p([]) -> true;
+null_p([]) -> ?TRUE;
+null_p(_) -> ?FALSE.
+
+list_p([]) -> ?TRUE;
 list_p([_|X]) -> list_p(X);
-list_p(_) -> false.
+list_p(_) -> ?FALSE.
 
-pair_p([_|_]) -> true;
-pair_p(_) -> false.
+pair_p([_|_]) -> ?TRUE;
+pair_p(_) -> ?FALSE.
+
+string_p(X) -> bool(is_binary(X)).
 
 char_e2s(C) -> {char, C}.
 char_s2e({char, C}) -> C.
@@ -88,6 +100,12 @@ string_to_list(Str) ->
 
 string_append(Strings) ->
     string_e2s(string:join(lists:map(fun string_s2e/1, Strings), "")).
+
+symbol_to_string(Sym) ->
+    string_e2s(atom_to_list(Sym)).
+
+string_to_symbol(Str) ->
+    list_to_atom(string_s2e(Str)).
 
 first([X|_]) -> X.
 second([_, X|_]) -> X.
@@ -202,4 +220,21 @@ stringp_test_() ->
 string_append_test_() ->
     [
      ?_assertSchemeEqual(str("foobar"), "(string-append \"foo\" \"bar\")")
+    ].
+
+symbol_to_string_test_() ->
+    [
+     ?_assertSchemeEqual(str("foo"), "(symbol->string 'foo)")
+    ].
+
+eqp_test_() ->
+    [
+     ?_assertSchemeTrue("(eq? #f #f)"),
+     ?_assertSchemeFalse("(eq? #f 'false)")
+    ].
+
+string_to_symbol_test_() ->
+    [
+%     ?_assertSchemeEqual("'foo", "(string->symbol \"foo\")"),
+     ?_assertSchemeEqual("'true", "(string->symbol \"true\")")
     ].

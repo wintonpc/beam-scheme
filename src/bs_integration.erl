@@ -68,3 +68,4 @@ or_test_() ->
      ?_assertEqual(1, eval("(or 1 2)")),
      ?_assertEqual(5, eval("(or #f #f #f #f 5)"))
     ].
+

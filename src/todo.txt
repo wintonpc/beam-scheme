@@ -1,10 +1,10 @@
 - get psyntax working
+  - symbol->string, string->symbol, symbol?
   - vectors (and reader macro)
     - vector, -length, -ref, -set!, vector?, list->vector
   - hashtables
     - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!
   - or, and, not, eq?, equal?
-  - symbol->string, string->symbol, symbol?
   - procedure?
   - comments
   - dotted pairs, improper lists
