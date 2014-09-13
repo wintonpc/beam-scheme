@@ -23,6 +23,7 @@ pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
 pretty(?TRUE) -> "#t";
 pretty(?FALSE) -> "#f";
 pretty(?VOID) -> "";
+pretty({char, C}) -> "#\\" ++ [C];
 
 pretty({closure, _, _, _}) -> "#<procedure>";
 
@@ -48,6 +49,7 @@ pretty_test_() ->
      ?_assertEqual("3.14", pretty(3.14)),
      ?_assertEqual("#t", pretty(?TRUE)),
      ?_assertEqual("#f", pretty(?FALSE)),
+     ?_assertEqual("#\\x", pretty({char, $x})),
      ?_assertEqual("sym", pretty(sym)),
      ?_assertEqual("()", pretty([])),
      ?_assertEqual("(foo)", pretty([foo])),

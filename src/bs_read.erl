@@ -65,6 +65,12 @@ on_char(Char, CharStream, CurrentToken) ->
                 $f ->
                     yield_token(?FALSE),
                     gen_tokenize(CharStream);
+                $\\ ->
+                    case stream:next(CharStream) of
+                        LitChar ->
+                            yield_token({char, LitChar}),
+                            gen_tokenize(CharStream)
+                    end;
                 $% -> gen_tokenize(CharStream, "%#")
             end;
         $"  ->
@@ -106,11 +112,9 @@ evaluate_token(T) ->
            ?WHEN(T == "`"), ?THEN('`'),
            ?WHEN(T == ","), ?THEN(','),
            ?WHEN(T == ",@"), ?THEN(',@'),
-           ?WHEN(T == ?FALSE), ?THEN(?FALSE),
-           ?WHEN(T == ?TRUE), ?THEN(?TRUE),
-           ?WHEN(is_binary(T)), ?THEN(T),
-           ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T))
-          ], ?ELSE(list_to_atom(T))).
+           ?WHEN(tok_is_integer(T)), ?THEN(string_to_integer(T)),
+           ?WHEN(is_list(T)), ?THEN(list_to_atom(T))
+          ], ?ELSE(T)).
 
 string_to_integer(S) ->
     {V, _} = string:to_integer(S),
@@ -213,7 +217,8 @@ tokenize_test_() ->
     ?_assertEqual([<<"scheme says, \"hello there\"">>], toks("\"scheme says, \\\"hello there\\\"\"")),
     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))")),
     ?_assertEqual([?TRUE], toks("#t")),
-    ?_assertEqual([?FALSE], toks("#f"))
+    ?_assertEqual([?FALSE], toks("#f")),
+    ?_assertEqual([{char, $x}], toks("#\\x"))
    ].
 
 evaluate_test_() ->
@@ -228,7 +233,8 @@ evaluate_test_() ->
      ?_assertEqual(foo, evaluate_token("foo")),
      ?_assertEqual(?FALSE, evaluate_token(?FALSE)),
      ?_assertEqual(?TRUE, evaluate_token(?TRUE)),
-     ?_assertEqual(<<"hello">>, evaluate_token(<<"hello">>))
+     ?_assertEqual(<<"hello">>, evaluate_token(<<"hello">>)),
+     ?_assertEqual({char, $x}, evaluate_token({char, $x}))
     ].
 
 parse_test_() ->
@@ -239,6 +245,7 @@ parse_test_() ->
      ?_assertEqual([[foo]], read_all("(foo)")),
      ?_assertEqual([?FALSE], read_all("#f")),
      ?_assertEqual([?TRUE], read_all("#t")),
+     ?_assertEqual([{char, $x}], read_all("#\\x")),
      ?_assertEqual([[quote, [?TRUE]]], read_all("'(#t)")),
      ?_assertEqual([a, [b, c], d], read_all("a (b c) d")),
      ?_assertEqual([a, [b, [x, y, z], c], d], read_all("a (b (x y z) c) d")),
