@@ -26,6 +26,7 @@ env() ->
     bs_env:set(E, 'string->list', fun string_to_list/1),
     bs_env:set(E, 'symbol->string', fun symbol_to_string/1),
     bs_env:set(E, 'string->symbol', fun string_to_symbol/1),
+    bs_env:set(E, 'symbol?', fun symbol_p/1),
     bs_env:set(E, 'string?', fun string_p/1),
     bs_env:set(E, '#%string-append', fun string_append/1),
     bs_env:set(E, 'pair?', fun pair_p/1),
@@ -85,6 +86,7 @@ pair_p([_|_]) -> ?TRUE;
 pair_p(_) -> ?FALSE.
 
 string_p(X) -> bool(is_binary(X)).
+symbol_p(X) -> bool(is_atom(X)).
 
 char_e2s(C) -> {char, C}.
 char_s2e({char, C}) -> C.
@@ -235,6 +237,14 @@ eqp_test_() ->
 
 string_to_symbol_test_() ->
     [
-%     ?_assertSchemeEqual("'foo", "(string->symbol \"foo\")"),
+     ?_assertSchemeEqual("'foo", "(string->symbol \"foo\")"),
      ?_assertSchemeEqual("'true", "(string->symbol \"true\")")
+    ].
+
+symbolp_test_() ->
+    [
+     ?_assertSchemeTrue("(symbol? 'foo)"),
+     ?_assertSchemeFalse("(symbol? '())"),
+     ?_assertSchemeFalse("(symbol? #t)"),
+     ?_assertSchemeFalse("(symbol? \"hello\")")
     ].
