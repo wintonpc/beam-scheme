@@ -1,6 +1,5 @@
 - get psyntax working
-  - lists
-    - list->string, string->list
+  - string, string-append, string?, list->string, string->list
   - vectors (and reader macro)
     - vector, -length, -ref, -set!, vector?, list->vector
   - hashtables
@@ -8,7 +7,6 @@
   - or, and, not, eq?, equal?
   - symbol->string, string->symbol, symbol?
   - procedure?
-  - string-append, string?
   - comments
   - dotted pairs, improper lists
   - map (1-arg only)
