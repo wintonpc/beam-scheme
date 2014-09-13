@@ -33,17 +33,17 @@ vm(A, X, E, R, S) ->
                     vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
                 {primop, 0, Fun} ->
                     case R of
-                        [] -> vm(Fun(), {return}, E, R, S);
+                        [] -> vm(e2s(Fun()), {return}, E, R, S);
                         Rs -> error({wrong_arg_count, 0, Rs})
                      end;
                 {primop, 1, Fun} ->
                     case R of
-                        [R1] -> vm(Fun(R1), {return}, E, R, S);
+                        [R1] -> vm(e2s(Fun(s2e(R1))), {return}, E, R, S);
                         Rs -> error({wrong_arg_count, 1, Rs})
                     end;
                 {primop, 2, Fun} ->
                     case R of
-                        [R1, R2] -> vm(Fun(R1, R2), {return}, E, R, S);
+                        [R1, R2] -> vm(e2s(Fun(s2e(R1), s2e(R2))), {return}, E, R, S);
                         Rs -> error({wrong_arg_count, 2, Rs})
                     end;
                 Unk -> error({tried_to_apply_non_procedure, Unk})
@@ -52,6 +52,16 @@ vm(A, X, E, R, S) ->
             {_X, _E, _R, _S} = S,
             vm(A, _X, _E, _R, _S)
     end.
+
+e2s(true) -> ?TRUE;
+e2s(false) -> ?FALSE;
+e2s(X) -> X.
+
+s2e(?TRUE) -> true;
+s2e(?FALSE) -> false;
+s2e(X) -> X.
+
+
         
 make_closure(Vars, Body, E) -> {closure, Body, E, Vars}.
 

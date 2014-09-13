@@ -1,6 +1,6 @@
 - get psyntax working
   - lists
-    - list, list?, list-ref, list->string, pair?, null?
+    - list->string, string->list
   - vectors (and reader macro)
     - vector, -length, -ref, -set!, vector?, list->vector
   - hashtables
