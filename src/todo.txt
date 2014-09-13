@@ -1,5 +1,4 @@
 - get psyntax working
-  - string, string-append, string?, list->string, string->list
   - vectors (and reader macro)
     - vector, -length, -ref, -set!, vector?, list->vector
   - hashtables

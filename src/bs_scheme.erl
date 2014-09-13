@@ -18,6 +18,10 @@ env() ->
     bs_env:set(E, 'cdr', fun erlang:tl/1),
     bs_env:set(E, 'null?', fun null_p/1),
     bs_env:set(E, 'list?', fun bs_scheme:list_p/1),
+    bs_env:set(E, 'list->string', fun bs_scheme:list_to_string/1),
+    bs_env:set(E, 'string->list', fun bs_scheme:string_to_list/1),
+    bs_env:set(E, 'string?', fun erlang:is_binary/1),
+    bs_env:set(E, '#%string-append', fun bs_scheme:string_append/1),
     bs_env:set(E, 'pair?', fun bs_scheme:pair_p/1),
     bs_env:set(E, 'append-lists', fun lists:append/1),
     bs_env:set(E, 'length', fun erlang:length/1),
@@ -69,6 +73,21 @@ list_p(_) -> false.
 
 pair_p([_|_]) -> true;
 pair_p(_) -> false.
+
+char_e2s(C) -> {char, C}.
+char_s2e({char, C}) -> C.
+
+string_e2s(S) -> list_to_binary(S).
+string_s2e(S) -> binary_to_list(S).
+
+list_to_string(Chars) ->
+    string_e2s(lists:map(fun char_s2e/1, Chars)).
+
+string_to_list(Str) ->
+    lists:map(fun char_e2s/1, string_s2e(Str)).
+
+string_append(Strings) ->
+    string_e2s(string:join(lists:map(fun string_s2e/1, Strings), "")).
 
 first([X|_]) -> X.
 second([_, X|_]) -> X.
@@ -155,4 +174,32 @@ pairp_test_() ->
      ?_assertSchemeFalse("(pair? 1)")
     ].
      
+list_to_string_test_() ->
+    [
+     ?_assertSchemeEqual(str("abc"), "(list->string (list #\\a #\\b #\\c))"),
+     ?_assertSchemeEqual(str("abc"), "(list->string '(#\\a #\\b #\\c))")
+    ].
 
+string_to_list_test_() ->
+    [
+     ?_assertSchemeEqual("'(#\\a #\\b #\\c)", "(string->list \"abc\")")
+    ].
+
+string_ctor_test_() ->
+    [
+     ?_assertSchemeEqual(str("abc"), "(string #\\a #\\b #\\c)")
+    ].
+    
+stringp_test_() ->
+    [
+     ?_assertSchemeTrue("(string? \"abc\")"),
+     ?_assertSchemeFalse("(string? 1)"),
+     ?_assertSchemeFalse("(string? 'a)"),
+     ?_assertSchemeFalse("(string? '(1 2))"),
+     ?_assertSchemeFalse("(string? #t)")
+    ].
+
+string_append_test_() ->
+    [
+     ?_assertSchemeEqual(str("foobar"), "(string-append \"foo\" \"bar\")")
+    ].

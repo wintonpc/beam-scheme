@@ -217,8 +217,7 @@ tokenize_test_() ->
     ?_assertEqual([<<"scheme says, \"hello there\"">>], toks("\"scheme says, \\\"hello there\\\"\"")),
     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))")),
     ?_assertEqual([?TRUE], toks("#t")),
-    ?_assertEqual([?FALSE], toks("#f")),
-    ?_assertEqual([{char, $x}], toks("#\\x"))
+    ?_assertEqual([?FALSE], toks("#f"))
    ].
 
 evaluate_test_() ->

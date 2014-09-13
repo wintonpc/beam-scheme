@@ -1,4 +1,6 @@
 (set! list (lambda L L))
+(set! string (lambda L (list->string L)))
+(set! string-append (lambda L (#%string-append L)))
 (set! gensym (lambda L (#%gensym L)))
 (set! generate-temporaries
   (lambda (xs)
