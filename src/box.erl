@@ -3,7 +3,7 @@
 -export([make/1, set/2, get/1, run/1]).
 
 make(Value) ->
-    spawn(box, run, [Value]).
+    {box, spawn(box, run, [Value])}.
 
 run(Value) ->
     receive
@@ -14,14 +14,14 @@ run(Value) ->
             run(Value)
     end.
 
-set(Box, Value) ->
-    Box ! {set, Value},
+set({box, Pid}, Value) ->
+    Pid ! {set, Value},
     ok.
 
-get(Box) ->
-    Box ! {get, self()},
+get({box, Pid}) ->
+    Pid ! {get, self()},
     receive
-        {Box, Value} ->
+        {Pid, Value} ->
             Value
     end.
 

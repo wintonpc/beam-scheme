@@ -16,6 +16,9 @@ pretty(Exp) when is_binary(Exp) ->
 pretty(Exp) when is_list(Exp) ->
     "(" ++ string:join(lists:map(fun pretty/1, Exp), " ") ++ ")";
 
+pretty({vector, Array}) ->
+    "#" ++ pretty(bs_scheme:vector_to_list({vector, Array}));
+
 pretty(Exp) when is_atom(Exp) -> atom_to_list(Exp);
 
 pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
@@ -55,5 +58,7 @@ pretty_test_() ->
      ?_assertEqual("(foo)", pretty([foo])),
      ?_assertEqual("(foo bar)", pretty([foo, bar])),
      ?_assertEqual("\"woman\"", pretty(<<"woman">>)),
-     ?_assertEqual("\"hello \\\\ \\\"hi!\\\"\"", pretty(<<"hello \\ \"hi!\"">>))
+     ?_assertEqual("\"hello \\\\ \\\"hi!\\\"\"", pretty(<<"hello \\ \"hi!\"">>)),
+     ?_assertEqual("#(1 foo \"say \\\"hello\\\"\")",
+                   pretty(bs_scheme:list_to_vector([1, foo, <<"say \"hello\"">>])))
     ].
