@@ -46,6 +46,11 @@ vm(A, X, E, R, S) ->
                         [R1, R2] -> vm(Fun(R1, R2), {return}, E, R, S);
                         Rs -> error({wrong_arg_count, 2, Rs})
                     end;
+                {primop, 3, Fun} ->
+                    case R of
+                        [R1, R2, R3] -> vm(Fun(R1, R2, R3), {return}, E, R, S);
+                        Rs -> error({wrong_arg_count, 3, Rs})
+                    end;
                 Unk -> error({tried_to_apply_non_procedure, Unk})
             end;
         {return} ->

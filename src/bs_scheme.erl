@@ -26,6 +26,12 @@ env() ->
     bs_env:set(E, 'string->list', fun string_to_list/1),
     bs_env:set(E, 'symbol->string', fun symbol_to_string/1),
     bs_env:set(E, 'string->symbol', fun string_to_symbol/1),
+    bs_env:set(E, 'list->vector', fun list_to_vector/1),
+    bs_env:set(E, 'vector->list', fun vector_to_list/1),
+    bs_env:set(E, 'vector-length', fun vector_length/1),
+    bs_env:set(E, 'vector-ref', fun vector_ref/2),
+    bs_env:set(E, 'vector-set!', fun vector_set/3),
+    bs_env:set(E, 'vector?', fun vector_p/1),
     bs_env:set(E, 'symbol?', fun symbol_p/1),
     bs_env:set(E, 'string?', fun string_p/1),
     bs_env:set(E, '#%string-append', fun string_append/1),
@@ -73,7 +79,14 @@ gensym([Name], Numbers) ->
 
 equals(A, B) -> bool(A == B).
 eq_p(A, B) -> bool(A == B).
-equal_p(A, B) -> bool(A == B).
+
+equal_p(A, B) -> bool(equal_p2(A, B)).
+
+equal_p2({vector, A}, {vector, B}) ->
+    equal_p2(vector_to_list({vector, A}), vector_to_list({vector, B}));
+equal_p2([A|X], [B|Y]) ->
+    equal_p2(A, B) andalso equal_p2(X, Y);
+equal_p2(A, B) -> A == B.
 
 null_p([]) -> ?TRUE;
 null_p(_) -> ?FALSE.
@@ -119,6 +132,19 @@ copy_list_to_array([H|T], Array, Index, Length) ->
 
 vector_to_list({vector, Box}) ->
     array:to_list(box:get(Box)).
+
+vector_length({vector, Box}) ->
+    array:size(box:get(Box)).
+
+vector_p({vector, _}) -> ?TRUE;
+vector_p(_) -> ?FALSE.
+
+vector_ref({vector, Box}, Index) ->
+    array:get(Index, box:get(Box)).
+
+vector_set({vector, Box}, Index, Value) ->
+    box:set(Box, array:set(Index, Value, box:get(Box))),
+    ?VOID.
 
 first([X|_]) -> X.
 second([_, X|_]) -> X.
@@ -259,3 +285,47 @@ symbolp_test_() ->
      ?_assertSchemeFalse("(symbol? #t)"),
      ?_assertSchemeFalse("(symbol? \"hello\")")
     ].
+
+vector_test_() ->
+    [
+     ?_assertSchemeEqual("#()", "(vector)"),
+     ?_assertSchemeEqual("#(1 2 3)", "(vector 1 2 3)")
+    ].
+
+list_to_vector_test_() ->
+    [
+     ?_assertSchemeEqual("#()", "(list->vector '())"),
+     ?_assertSchemeEqual("#(1 2 3)", "(list->vector '(1 2 3))"),
+     ?_assertSchemeEqual("#(1 '(2) 3)", "(list->vector '(1 '(2) 3))")
+    ].
+    
+vector_to_list_test_() ->
+    [
+     ?_assertSchemeEqual("'()", "(vector->list #())"),
+     ?_assertSchemeEqual("'(1 2 3)", "(vector->list #(1 2 3))"),
+     ?_assertSchemeEqual("'(1 #(2) 3)", "(vector->list #(1 #(2) 3))")
+    ].
+
+vector_length_test_() ->
+    [
+     ?_assertSchemeEqual("0", "(vector-length #())"),
+     ?_assertSchemeEqual("3", "(vector-length #(1 2 3))")
+    ].
+
+vectorp_test_() ->
+    [
+     ?_assertSchemeTrue("(vector? #(x y))"),
+     ?_assertSchemeTrue("(vector? (vector 1 2))"),
+     ?_assertSchemeFalse("(vector? '(1 2))"),
+     ?_assertSchemeFalse("(vector? \"hello\")")
+    ].
+
+vector_ref_test_() ->
+    [
+     ?_assertSchemeEqual("'x", "(vector-ref #(x y) 0)"),
+     ?_assertSchemeEqual("'(a b)", "(vector-ref #(99 (a b)) 1)")
+    ].
+
+vector_set_test() ->
+    ?assertSchemeEqual("'(2 99)",
+                       "(set! v #(1 2 3)) (set! a (vector-ref v 1)) (vector-set! v 1 99) (list a (vector-ref v 1))").
