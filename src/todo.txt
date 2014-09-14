@@ -1,6 +1,4 @@
 - get psyntax working
-  - vectors (and reader macro)
-    - -set!
   - hashtables
     - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!
   - or, and, not, eq?, equal?
@@ -14,7 +12,6 @@
   - letrec
   - define (scheme impl)
   - values, call-with-values
-  - begin
 - match (erlang impl)
 - cond
 - stream exception doesn't always kill process that made the stream ??

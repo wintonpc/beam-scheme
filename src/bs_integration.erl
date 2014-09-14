@@ -69,3 +69,11 @@ or_test_() ->
      ?_assertEqual(5, eval("(or #f #f #f #f 5)"))
     ].
 
+begin_test() ->
+    ?assertEqual(5, eval("(begin 1 2 (+ 1 4))")).
+
+implicit_begin_test_() ->
+    [
+     ?_assertEqual(2, eval("((lambda () 1 2))")),
+     ?_assertEqual(2, eval("(let () 1 2)"))
+    ].

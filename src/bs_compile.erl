@@ -44,8 +44,12 @@ compile([quasiquote, Obj], Next, EnvInfo) ->
     %io:format(user, "QQ: ~s  ->  ~s~n", [bs_print:pretty([quasiquote, Obj]), bs_print:pretty(QQ)]),
     compile(QQ, Next, EnvInfo);
 
-compile([lambda, Vars, Body], Next, {Env, VarRibs}) ->
-    {close, Vars, compile(Body, {return}, {Env, add_rib(Vars, VarRibs)}), Next};
+compile([lambda, Vars | Bodies], Next, {Env, VarRibs}) ->
+    {close, Vars, compile(['begin'|Bodies], {return}, {Env, add_rib(Vars, VarRibs)}), Next};
+
+compile(['begin'], Next, _) -> Next;
+compile(['begin',Expr|Rest], Next, EnvInfo) ->
+    compile(Expr, compile(['begin'|Rest], Next, EnvInfo), EnvInfo);
 
 compile(['define-syntax', Keyword, Transformer], {halt}, {Env, _}) ->
     bs_env:set(Env, Keyword, {transformer, Transformer}),
@@ -130,6 +134,9 @@ compile_quote_test() ->
 
 compile_lambda_test() ->
     ?assertEqual({close, [x], {refer, x, {return}}, {halt}}, compile([lambda, [x], x])).
+
+compile_begin_test() ->
+    ?assertEqual({constant, 1, {constant, 2, {halt}}}, compile(['begin', 1, 2])).
 
 compile_if_test() ->
     ?assertEqual({constant, 5, {test, {constant, 1, {halt}}, {constant, 2, {halt}}}}, compile(['if', 5, 1, 2])).

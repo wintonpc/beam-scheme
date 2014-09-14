@@ -149,10 +149,10 @@ vector_set({vector, Box}, Index, Value) ->
 first([X|_]) -> X.
 second([_, X|_]) -> X.
 
-transform_let([_, Bindings, Body]) ->
+transform_let([_, Bindings | Bodies]) ->
     Names = lists:map(fun first/1, Bindings),
     Exprs = lists:map(fun second/1, Bindings),
-    [[lambda, Names, Body]|Exprs].
+    [[lambda, Names | Bodies]|Exprs].
 
 expand(Expr, Keywords, Env) -> expand(Expr, [], Keywords, Env).
 
@@ -328,7 +328,7 @@ vector_ref_test_() ->
 
 vector_set_test() ->
     ?assertSchemeEqual("'(2 99)",
-                       "(let ()"
+                       "(begin"
                        "(set! v #(1 2 3))"
                        "(set! a (vector-ref v 1))"
                        "(vector-set! v 1 99)"
