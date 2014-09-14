@@ -328,4 +328,8 @@ vector_ref_test_() ->
 
 vector_set_test() ->
     ?assertSchemeEqual("'(2 99)",
-                       "(set! v #(1 2 3)) (set! a (vector-ref v 1)) (vector-set! v 1 99) (list a (vector-ref v 1))").
+                       "(let ()"
+                       "(set! v #(1 2 3))"
+                       "(set! a (vector-ref v 1))"
+                       "(vector-set! v 1 99)"
+                       "(list a (vector-ref v 1)))").

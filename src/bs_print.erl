@@ -21,7 +21,8 @@ pretty({vector, Array}) ->
 
 pretty(Exp) when is_atom(Exp) -> atom_to_list(Exp);
 
-pretty(Exp) when is_number(Exp) -> hd(io_lib:format("~p", [Exp]));
+pretty(Exp) when is_number(Exp) -> lists:flatten(io_lib:format("~p", [Exp]));
+
 
 pretty(?TRUE) -> "#t";
 pretty(?FALSE) -> "#f";
@@ -29,8 +30,14 @@ pretty(?VOID) -> "";
 pretty({char, C}) -> "#\\" ++ [C];
 
 pretty({closure, _, _, _}) -> "#<procedure>";
+pretty({transformer, _}) -> "#<syntax-transformer>";
+pretty(Exp) when is_function(Exp) ->
+    {name, Name} = erlang:fun_info(Exp, name),
+    lists:flatten(io_lib:format("#<primitive procedure ~s>", [Name]));
 
-pretty({primop, _, Fun}) -> io_lib:format("~p", [Fun]).
+pretty({primop, _, Fun}) -> lists:flatten(io_lib:format("~p", [Fun]));
+
+pretty(_) -> "#<native-object>".
 
 escape_string(S) -> escape_string(S, []).
 escape_string(S, Acc) ->

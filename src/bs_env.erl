@@ -1,6 +1,6 @@
 -module(bs_env).
 -include_lib("eunit/include/eunit.hrl").
--export([empty/0, try_lookup/2, lookup/2, extend/3, set/3, all_vars/1]).
+-export([empty/0, try_lookup/2, lookup/2, extend/3, set/3, all_vars/1, dump/1]).
 
 make(Vars, Vals, Parent) ->
     {bs_env, box:make(Vars), box:make(Vals), Parent}.
@@ -57,6 +57,12 @@ set_var([_|Vars], [OldVal|Vals], Var, NewVal) ->
 all_vars(nil) -> [];
 all_vars({bs_env, VarsBox, _, Parent}) ->
     box:get(VarsBox) ++ all_vars(Parent).
+
+dump(Env) -> lists:flatten(dump(Env, all_vars(Env))).
+
+dump(_, []) -> "";
+dump(Env, [Var|T]) ->
+    io_lib:format("~s: ~s~n", [bs_print:pretty(Var), bs_print:pretty(lookup(Var, Env))]) ++ dump(Env, T).
 
 
 %%%% TESTS %%%%
