@@ -1,6 +1,6 @@
 - get psyntax working
   - hashtables
-    - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!
+    - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!, hashtable?
   - map (1-arg only)
   - apply
   - eval

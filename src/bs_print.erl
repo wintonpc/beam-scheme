@@ -14,7 +14,7 @@ pretty(Exp) when is_binary(Exp) ->
     "\"" ++ escape_string(binary_to_list(Exp)) ++ "\"";
 
 pretty(Exp) when is_list(Exp) ->
-    "(" ++ string:join(lists:map(fun pretty/1, Exp), " ") ++ ")";
+    "(" ++ pretty_list(Exp) ++ ")";
 
 pretty({vector, Array}) ->
     "#" ++ pretty(bs_scheme:vector_to_list({vector, Array}));
@@ -38,6 +38,13 @@ pretty(Exp) when is_function(Exp) ->
 pretty({primop, _, Fun}) -> lists:flatten(io_lib:format("~p", [Fun]));
 
 pretty(_) -> "#<native-object>".
+
+pretty_list([]) -> "";
+pretty_list([H]) -> pretty(H);
+pretty_list([H|T]) when not is_list(T) ->
+    pretty(H) ++ " . " ++ pretty(T);
+pretty_list([H|T]) ->
+    pretty(H) ++ " " ++ pretty_list(T).
 
 escape_string(S) -> escape_string(S, []).
 escape_string(S, Acc) ->
@@ -64,6 +71,8 @@ pretty_test_() ->
      ?_assertEqual("()", pretty([])),
      ?_assertEqual("(foo)", pretty([foo])),
      ?_assertEqual("(foo bar)", pretty([foo, bar])),
+     ?_assertEqual("(foo . bar)", pretty([foo|bar])),
+     ?_assertEqual("(foo bar . baz)", pretty([foo,bar|baz])),
      ?_assertEqual("\"woman\"", pretty(<<"woman">>)),
      ?_assertEqual("\"hello \\\\ \\\"hi!\\\"\"", pretty(<<"hello \\ \"hi!\"">>)),
      ?_assertEqual("#(1 foo \"say \\\"hello\\\"\")",
