@@ -4,9 +4,6 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 
-bool(true) -> ?TRUE;
-bool(false) -> ?FALSE.
-
 env() ->
     E = bs_env:empty(),
     Eval = fun(Code) -> bs_compile:eval(bs_read:read1(Code), E) end,
@@ -34,6 +31,11 @@ env() ->
     bs_env:set(E, 'vector-ref', fun vector_ref/2),
     bs_env:set(E, 'vector-set!', fun vector_set/3),
     bs_env:set(E, 'vector?', fun vector_p/1),
+    bs_env:set(E, 'make-hashtable', fun make_hashtable/0),
+    bs_env:set(E, 'hashtable?', fun hashtable_p/1),
+    bs_env:set(E, 'hashtable-set!', fun hashtable_set/3),
+    bs_env:set(E, 'hashtable-ref', fun hashtable_ref/3),
+    bs_env:set(E, 'hashtable-delete!', fun hashtable_delete/2),
     bs_env:set(E, 'symbol?', fun symbol_p/1),
     bs_env:set(E, 'string?', fun string_p/1),
     bs_env:set(E, 'procedure?', fun procedure_p/1),
@@ -47,6 +49,9 @@ env() ->
     bs_env:set(E, 'cwd', fun() -> {ok, Path} = file:get_cwd(), list_to_binary(Path) end),
     bs_env:set(E, 'list-ref', fun(List, N) -> lists:nth(N + 1, List) end),
     bs_env:set(E, 'load', fun(File) -> load(File, E) end),
+    bs_env:set(E, 'assert', fun assert_true/1),
+    bs_env:set(E, 'assert-true', fun assert_true/1),
+    bs_env:set(E, 'assert-false', fun assert_false/1),
     bs_env:set(E, 'expand', fun(Expr, Keywords) -> expand(Expr, Keywords, E) end),
 
     load("/home/pwinton/git/bs/src/scheme0.bs", E),
@@ -80,10 +85,10 @@ gensym([], Numbers) ->
 gensym([Name], Numbers) ->
     list_to_atom(lists:flatten(io_lib:format("^~p~p", [Name, stream:next(Numbers)]))).
 
-equals(A, B) -> bool(A == B).
-eq_p(A, B) -> bool(A == B).
+equals(A, B) -> bool_e2s(A == B).
+eq_p(A, B) -> bool_e2s(A == B).
 
-equal_p(A, B) -> bool(equal_p2(A, B)).
+equal_p(A, B) -> bool_e2s(equal_p2(A, B)).
 
 equal_p2({vector, A}, {vector, B}) ->
     equal_p2(vector_to_list({vector, A}), vector_to_list({vector, B}));
@@ -101,12 +106,18 @@ list_p(_) -> ?FALSE.
 pair_p([_|_]) -> ?TRUE;
 pair_p(_) -> ?FALSE.
 
-string_p(X) -> bool(is_binary(X)).
-symbol_p(X) -> bool(is_atom(X)).
+string_p(X) -> bool_e2s(is_binary(X)).
+symbol_p(X) -> bool_e2s(is_atom(X)).
 
 procedure_p({closure, _, _, _}) -> ?TRUE;
 procedure_p({primop, _, _}) -> ?TRUE;
 procedure_p(_) -> ?FALSE.
+
+bool_e2s(true) -> ?TRUE;
+bool_e2s(false) -> ?FALSE.
+
+bool_s2e(?TRUE) -> true;
+bool_s2e(?FALSE) -> false.
 
 char_e2s(C) -> {char, C}.
 char_s2e({char, C}) -> C.
@@ -156,6 +167,26 @@ vector_set({vector, Box}, Index, Value) ->
     box:set(Box, array:set(Index, Value, box:get(Box))),
     ?VOID.
 
+make_hashtable() ->
+    {hashtable, box:make(gb_trees:empty())}.
+
+hashtable_p({hashtable, _}) -> ?TRUE;
+hashtable_p(_) -> ?FALSE.
+
+hashtable_set({hashtable, Box}, K, V) ->
+    box:set(Box, gb_trees:enter(K, V, box:get(Box))),
+    ?VOID.
+
+hashtable_ref({hashtable, Box}, K, Default) ->
+    case gb_trees:lookup(K, box:get(Box)) of
+        none -> Default;
+        {value, V} -> V
+    end.    
+
+hashtable_delete({hashtable, Box}, K) ->
+    box:set(Box, gb_trees:delete_any(K, box:get(Box))),
+    ?VOID.
+
 first([X|_]) -> X.
 second([_, X|_]) -> X.
 
@@ -197,6 +228,8 @@ eval(S) ->
 -define(_assertSchemeFalse(ACTUAL), fun() -> ?assertSchemeFalse(ACTUAL) end).
 -define(_assertSchemeException(EX_PATTERN, CODE), fun() -> ?assertSchemeException(EX_PATTERN, CODE) end).
 
+assert_true(X) -> ?assert(?FALSE /= X).
+assert_false(X) -> ?assert(?FALSE == X).
 
 list_test_() ->
     [
@@ -422,3 +455,18 @@ dotted_lambda_test_() ->
     [
      ?_assertSchemeEqual("'(1 2 (3 4))", "((lambda (a b . c) (list a b c)) 1 2 3 4)")
     ].
+
+hashtable_test() ->
+    eval("(let ([h (make-hashtable)])"
+         "(assert-true (hashtable? h))"
+         "(assert-false (hashtable? 1))"
+         "(hashtable-set! h 'x 5)"
+         "(hashtable-set! h '(1 2) 8)"
+         "(assert (eq? 5 (hashtable-ref h 'x 0)))"
+         "(assert (eq? 8 (hashtable-ref h '(1 2) 0)))"
+         "(assert (eq? 0 (hashtable-ref h 'z 0)))"
+         "(hashtable-set! h 'x 9)"
+         "(assert (eq? 9 (hashtable-ref h 'x 0)))"
+         "(hashtable-delete! h 'x)"
+         "(assert (eq? 0 (hashtable-ref h 'x 0)))"
+         ")").

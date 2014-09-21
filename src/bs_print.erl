@@ -31,13 +31,14 @@ pretty({char, C}) -> "#\\" ++ [C];
 
 pretty({closure, _, _, _}) -> "#<procedure>";
 pretty({transformer, _}) -> "#<syntax-transformer>";
+pretty({hashtable, _}) -> "#<hashtable>";
 pretty(Exp) when is_function(Exp) ->
     {name, Name} = erlang:fun_info(Exp, name),
     lists:flatten(io_lib:format("#<primitive procedure ~s>", [Name]));
 
 pretty({primop, _, Fun}) -> lists:flatten(io_lib:format("~p", [Fun]));
 
-pretty(_) -> "#<native-object>".
+pretty(X) -> lists:flatten(io_lib:format("#<native-object ~p>", [X])).
 
 pretty_list([]) -> "";
 pretty_list([H]) -> pretty(H);
