@@ -71,5 +71,6 @@ implicit_begin_test_() ->
 
 comment_test_() ->
     [
-     ?_assertEqual(5, eval("((lambda (x) ; foo\nx) ;; bar\n 5) ; end"))
+     ?_assertEqual(5, eval("((lambda (x) ; foo\nx) ;; bar\n 5) ; end")),
+     ?_assertEqual(4, eval("(+ 1 #;2 3)"))
     ].

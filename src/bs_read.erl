@@ -52,7 +52,6 @@ on_char(Char, CharStream, CurrentToken) ->
             case stream:next(CharStream) of
                 $@ -> Yield(",@");
                 Char2 ->
-                    yield_token(CurrentToken),
                     yield_token([Char]),
                     on_char(Char2, CharStream, CurrentToken)
             end;
@@ -65,6 +64,8 @@ on_char(Char, CharStream, CurrentToken) ->
                 $f ->
                     yield_token(?FALSE),
                     gen_tokenize(CharStream);
+                $; ->
+                    Yield("#;");
                 $\\ ->
                     case stream:next(CharStream) of
                         LitChar ->
@@ -183,6 +184,9 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
         ',@' ->
             Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             AddAndContinue(['unquote-splicing', Parsed]);
+        '#;' ->
+            _ = gen_parse(TokenStream, none, fun identity/1, nil, nil),
+            gen_parse(TokenStream, Opener, Yield, Add, Acc);
         T ->
             AddAndContinue(T)
     end.
@@ -231,7 +235,10 @@ tokenize_test_() ->
     ?_assertEqual(["`", "(", "1", ",", "x", ",@", "(", "+", "y", "z", ")", ")"], toks("`(1 ,x ,@(+ y z))")),
     ?_assertEqual([?TRUE], toks("#t")),
     ?_assertEqual([?FALSE], toks("#f")),
-    ?_assertEqual(["#", "(", "1", "2", ")"], toks("#(1 2)"))
+    ?_assertEqual(["#", "(", "1", "2", ")"], toks("#(1 2)")),
+    ?_assertEqual(["#;", "1"], toks("#;1")),
+    ?_assertEqual(["#;", "1"], toks("#; 1")),
+    ?_assertEqual(["#;", "(", "1", "2", ")"], toks("#;(1 2)"))
    ].
 
 evaluate_test_() ->
@@ -267,6 +274,7 @@ parse_test_() ->
      ?_assertEqual([], bs_scheme:vector_to_list(read1("#()"))),
      ?_assertEqual([foo], bs_scheme:vector_to_list(read1("#(foo)"))),
      ?_assertEqual([1, 2], bs_scheme:vector_to_list(read1("#(1 2)"))),
+     ?_assertEqual([1, 3], read1("(1 #;2 3)")),
 
      ?_assertError({mismatched, ')'}, read_all(")")),
      ?_assertError({mismatched, ')'}, read_all("x)")),
