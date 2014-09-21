@@ -20,6 +20,7 @@ vm(A, X, E, R, S) ->
             vm(make_closure(Vars, Body, E), _X, E, R, S);
         {frame, _X, Ret} -> vm(A, _X, E, [], make_frame(Ret, E, R, S));
         {argument, _X} -> vm(A, _X, E, [A|R], S);
+        {arguments, _X} -> vm(A, _X, E, A, S);
         {assign, Var, _X} ->
             bs_env:set(E, Var, A),
             vm(?VOID, _X, E, R, S);

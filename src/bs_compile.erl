@@ -64,6 +64,14 @@ compile(['if', Test, Then, Else], Next, EnvInfo) ->
 compile(['set!', Var, X], Next, EnvInfo) ->
     compile(X, {assign, Var, Next}, EnvInfo);
 
+compile(['#%apply', Op, Args], Next, _) ->
+    {frame,
+     {refer, Args,
+      {arguments,
+       {refer, Op,
+        {apply}}}},
+     Next};
+
 compile([Op|Args], Next, {Env, VarRibs}) ->
     EnvInfo = {Env, VarRibs},
     case is_atom(Op) andalso bs_env:try_lookup(Op, Env) of
@@ -167,3 +175,13 @@ is_free_identifier_test_() ->
      ?_assert(true == is_free_identifier(e, VarRibs))
     ].
 
+compile_apply_test_() ->
+    [
+     ?_assertMatch({frame,
+                    {refer, args,
+                     {arguments,
+                      {refer, proc,
+                       {apply}}}},
+                    {halt}},
+                   compile(['#%apply', proc, args]))
+     ].

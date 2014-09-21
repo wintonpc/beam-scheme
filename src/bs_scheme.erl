@@ -56,7 +56,6 @@ env() ->
     bs_env:set(E, 'assert-false', fun assert_false/1),
     bs_env:set(E, 'expand', fun(Expr, Keywords) -> expand(Expr, Keywords, E) end),
     bs_env:set(E, 'eval', fun(Expr) -> bs_compile:eval(Expr, E) end),
-    bs_env:set(E, 'apply', fun(Proc, Vals) -> bs_compile:eval([Proc|Vals], E) end),
 
     load("/home/pwinton/git/bs/src/scheme0.bs", E),
 
@@ -198,6 +197,15 @@ transform_let([_, Bindings | Bodies]) ->
     Names = lists:map(fun first/1, Bindings),
     Exprs = lists:map(fun second/1, Bindings),
     [[lambda, Names | Bodies]|Exprs].
+
+% transform_letrec([_, Bindings | Bodies]) ->
+%     Names = lists:map(fun first/1, Bindings),
+%     Exprs = lists:map(fun second/1, Bindings),
+%     [let, lists:map(fun(Name) -> [Name, ?FALSE] end, Names),
+%      [let, lists:map(fun(Expr) -> [gensym([], GensymNumbers), Expr] end, Exprs),
+%       [
+                             
+                            
 
 transform_define([_, Name, Expr]) when is_atom(Name) ->
     ['set!', Name, Expr];
@@ -509,7 +517,17 @@ plus_test_() ->
 apply_test_() ->
     [
      ?_assertSchemeEqual("3", "(apply + '(1 2))"),
-     ?_assertSchemeEqual("15", "(apply + '(1 2 3 4 5))")
+     ?_assertSchemeEqual("15", "(apply + '(1 2 3 4 5))"),
+     ?_assertSchemeEqual("'(a b c)", "(apply list '(a b c))"),
+     ?_assertSchemeEqual("3", "(let ([a 1] [b 2]) (apply + (list a b)))")
+    ].
+
+letrec_test_() ->
+    [
+     ?_assertSchemeEqual("15",
+                         "(begin"
+                         "(letrec ([sum (lambda (x) (if (= x 0) 0 (+ x (sum (- x 1)))))])"
+                         "(sum 5)))")
     ].
 
 % append_test_() ->

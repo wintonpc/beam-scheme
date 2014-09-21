@@ -50,6 +50,33 @@
       0
       (+/2 (car ns) (apply + (cdr ns)))))
 
+(define (cadr ls) (list-ref ls 1))
+
+(define (apply proc args) (#%apply proc args))
+
+#;(define #%letrec-transformer
+  (lambda (stx)
+    (apply (lambda (_ bindings . bodies)
+             (let ([vars (map car bindings)]
+                   [exps (map cadr bindings)])
+               `(let ,(map (lambda (v) `(,v #f)) vars)
+                  foo)))
+           stx)))
+
+#;(define #%letrec-transformer
+  (lambda (stx)
+    (apply (lambda (lr bindings . bodies)
+             (list lr bindings bodies))
+stx)))
+
+(define foo
+  (lambda (stx)
+    (apply
+     (lambda (name bindings . bodies) (list name bindings bodies))
+     stx)))
+  
+#;(define-syntax letrec #%letrec-transformer)
+
 #;(define append
   (lambda args
     (let f ([ls '()] [args args])
