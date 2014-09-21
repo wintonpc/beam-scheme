@@ -194,19 +194,14 @@ hashtable_delete({hashtable, Box}, K) ->
 first([X|_]) -> X.
 second([_, X|_]) -> X.
 
+transform_let([_, Name, Bindings | Bodies]) when is_atom(Name)->
+    Names = lists:map(fun first/1, Bindings),
+    Exprs = lists:map(fun second/1, Bindings),
+    [[letrec, [[Name, [lambda, Names | Bodies]]], Name] | Exprs];
 transform_let([_, Bindings | Bodies]) ->
     Names = lists:map(fun first/1, Bindings),
     Exprs = lists:map(fun second/1, Bindings),
     [[lambda, Names | Bodies]|Exprs].
-
-% transform_letrec([_, Bindings | Bodies]) ->
-%     Names = lists:map(fun first/1, Bindings),
-%     Exprs = lists:map(fun second/1, Bindings),
-%     [let, lists:map(fun(Name) -> [Name, ?FALSE] end, Names),
-%      [let, lists:map(fun(Expr) -> [gensym([], GensymNumbers), Expr] end, Exprs),
-%       [
-                             
-                            
 
 transform_define([_, Name, Expr]) when is_atom(Name) ->
     ['set!', Name, Expr];
@@ -541,7 +536,7 @@ letrec_test_() ->
 %      ?_assertSchemeEqual("'(a b . c)", "(append '(a b) 'c)")
 %     ].
 
-% named_let_test_() ->
-%     [
-%      ?_assertSchemeEqual("", "(let fact ([n 5]) (if (= n 0) 1 (* n (fact (- n 1)))))")
-%     ].
+named_let_test_() ->
+    [
+     ?_assertSchemeEqual("120", "(let fact ([n 5]) (if (= n 0) 1 (* n (fact (- n 1)))))")
+    ].
