@@ -417,3 +417,8 @@ improper_list_test_() ->
      ?_assertSchemeEqual("(cons 1 (cons 2 3))", "'(1 2 . 3)"),
      ?_assertSchemeEqual("(cons 0 (cons (cons 1 (cons 2 3)) (cons 9 '())))", "'(0 (1 2 . 3) 9)")
     ].
+
+dotted_lambda_test_() ->
+    [
+     ?_assertSchemeEqual("'(1 2 (3 4))", "((lambda (a b . c) (list a b c)) 1 2 3 4)")
+    ].

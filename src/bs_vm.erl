@@ -27,10 +27,9 @@ vm(A, X, E, R, S) ->
             vm(A, case A of ?FALSE -> Else; _ -> Then end, E, R, S);
         {apply} ->
             case A of
-                {closure, Body, Env, L} when is_atom(L) ->
-                    vm(A, Body, bs_env:extend(Env, [L], [R]), [], S);
                 {closure, Body, Env, Vars} ->
-                    vm(A, Body, bs_env:extend(Env, Vars, R), [], S);
+                    {MVars, MVals} = lists:unzip(map_formals(Vars, R)),
+                    vm(A, Body, bs_env:extend(Env, MVars, MVals), [], S);
                 {primop, 0, Fun} ->
                     case R of
                         [] -> vm(Fun(), {return}, E, R, S);
@@ -57,6 +56,10 @@ vm(A, X, E, R, S) ->
             {_X, _E, _R, _S} = S,
             vm(A, _X, _E, _R, _S)
     end.
+
+map_formals(F, Vals) when is_atom(F) -> [{F, Vals}];
+map_formals([], []) -> [];
+map_formals([F|Rf], [V|Rv]) -> [{F,V}|map_formals(Rf, Rv)].
 
 make_closure(Vars, Body, E) -> {closure, Body, E, Vars}.
 

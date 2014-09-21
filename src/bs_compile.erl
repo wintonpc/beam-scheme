@@ -1,6 +1,7 @@
 -module(bs_compile).
 -include_lib("eunit/include/eunit.hrl").
 -export([compile/2, eval/1, eval/2, expand/3]).
+-compile(export_all).
 
 eval(X) -> eval(X, bs_env:empty()).
 
@@ -106,10 +107,12 @@ compile_args([Arg|Rest], Compiled, EnvInfo) ->
 is_tail({return}) -> true;
 is_tail(_) -> false.
 
-add_rib(L, VarRibs) when is_atom(L) ->
-    {[L], VarRibs};
 add_rib(Vars, VarRibs) ->
-    {Vars, VarRibs}.
+    {formal_parameter_identifiers(Vars), VarRibs}.
+
+formal_parameter_identifiers([]) -> [];
+formal_parameter_identifiers(V) when is_atom(V) -> [V];
+formal_parameter_identifiers([V|T]) -> [V|formal_parameter_identifiers(T)].
 
 is_free_identifier(Id, VarRibs) ->
     not is_bound_identifier(Id, VarRibs).
