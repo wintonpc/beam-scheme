@@ -147,35 +147,35 @@ is_digit(C) -> lists:member(C, "0123456789").
 
 parse(TokenStream) -> stream:make(fun() -> gen_parse(TokenStream) end).
 
-gen_parse(TokenStream) -> gen_parse(TokenStream, none, fun nothing/1, fun(X, _) -> stream:yield(X) end, nil).
+gen_parse(TokenStream) -> gen_parse(TokenStream, none, fun(X, _) -> stream:yield(X) end, nil).
 
-gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
+gen_parse(TokenStream, Opener, Add, Acc) ->
     StreamDone = stream:done(),
     Tok = stream:next(TokenStream),
     AddAndContinue = fun(X) ->
                              case Add of
-                                 nil -> Yield(X);
-                                 _ -> gen_parse(TokenStream, Opener, Yield, Add, Add(X, Acc))
+                                 nil -> X;
+                                 _ -> gen_parse(TokenStream, Opener, Add, Add(X, Acc))
                              end
                      end,
-    NextExpr = fun() -> gen_parse(TokenStream, none, fun identity/1, nil, nil) end,
+    NextExpr = fun() -> gen_parse(TokenStream, none, nil, nil) end,
     TransformNextAndContinue = fun(Transform) -> AddAndContinue(Transform(NextExpr())) end,
-    %io:format(user, "gen_parse(~p ..., ~p, ~p, ~p, ~p)~n", [Tok, Opener, Yield, Add, Acc]),
+    %io:format(user, "gen_parse(~p ..., ~p, ~p, ~p)~n", [Tok, Opener, Add, Acc]),
     case Tok of
         StreamDone ->
             validate_closer(Opener, none),
-            Yield(Acc);
+            Acc;
         '(' ->
-            Parsed = gen_parse(TokenStream, '(', fun identity/1, fun cons/2, []),
+            Parsed = gen_parse(TokenStream, '(', fun cons/2, []),
             AddAndContinue(Parsed);
         ')' ->
             validate_closer(Opener, ')'),
-            Yield(reverse_list(Acc, []));
+            reverse_list(Acc, []);
         '.' ->
             Last = NextExpr(),
             Closer = stream:next(TokenStream),
-            validate_closer(Opener, ')'),
-            Yield(reverse_list(Acc, Last));
+            validate_closer(Opener, Closer),
+            reverse_list(Acc, Last);
         '\'' ->
             TransformNextAndContinue(fun(X) -> [quote, X] end);
         '`' ->
@@ -187,8 +187,8 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
         '#' ->
             TransformNextAndContinue(fun bs_scheme:list_to_vector/1);
         '#;' ->
-            _ = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            gen_parse(TokenStream, Opener, Yield, Add, Acc);
+            _ = gen_parse(TokenStream, none, nil, nil),
+            gen_parse(TokenStream, Opener, Add, Acc);
         T ->
             AddAndContinue(T)
     end.
