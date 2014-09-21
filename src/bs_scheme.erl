@@ -8,7 +8,7 @@ env() ->
     E = bs_env:empty(),
     Eval = fun(Code) -> bs_compile:eval(bs_read:read1(Code), E) end,
     GensymNumbers = stream:naturals(),
-    bs_env:set(E, '+', fun erlang:'+'/2),
+    bs_env:set(E, '+/2', fun erlang:'+'/2),
     bs_env:set(E, '-', fun erlang:'-'/2),
     bs_env:set(E, '*', fun erlang:'*'/2),
     bs_env:set(E, '=', fun equals/2),
@@ -55,6 +55,8 @@ env() ->
     bs_env:set(E, 'assert-true', fun assert_true/1),
     bs_env:set(E, 'assert-false', fun assert_false/1),
     bs_env:set(E, 'expand', fun(Expr, Keywords) -> expand(Expr, Keywords, E) end),
+    bs_env:set(E, 'eval', fun(Expr) -> bs_compile:eval(Expr, E) end),
+    bs_env:set(E, 'apply', fun(Proc, Vals) -> bs_compile:eval([Proc|Vals], E) end),
 
     load("/home/pwinton/git/bs/src/scheme0.bs", E),
 
@@ -491,3 +493,34 @@ define_test_() ->
      ?_assertSchemeEqual("5", "(begin (define (add1 x) (+ x 1)) (add1 4))"),
      ?_assertSchemeEqual("'(1 2 3 4)", "(begin (define (zlist . xs) xs) (zlist 1 2 3 4))")
     ].
+
+eval_test_() ->
+    [
+     ?_assertSchemeEqual("3", "(eval '(+ 1 2))")
+    ].
+
+plus_test_() ->
+    [
+     ?_assertSchemeEqual("0", "(+)"),
+     ?_assertSchemeEqual("42", "(+ 42)"),
+     ?_assertSchemeEqual("15", "(+ 1 2 3 4 5)")
+    ].
+
+apply_test_() ->
+    [
+     ?_assertSchemeEqual("3", "(apply + '(1 2))"),
+     ?_assertSchemeEqual("15", "(apply + '(1 2 3 4 5))")
+    ].
+
+% append_test_() ->
+%     [
+%      ?_assertSchemeEqual("'(a b c)", "(append '(a b c) '())"),
+%      ?_assertSchemeEqual("'(a b c)", "(append '() '(a b c))"),
+%      ?_assertSchemeEqual("'(a b c d)", "(append '(a b) '(c d))"),
+%      ?_assertSchemeEqual("'(a b . c)", "(append '(a b) 'c)")
+%     ].
+
+% named_let_test_() ->
+%     [
+%      ?_assertSchemeEqual("", "(let fact ([n 5]) (if (= n 0) 1 (* n (fact (- n 1)))))")
+%     ].

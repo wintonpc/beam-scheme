@@ -1,10 +1,11 @@
 - get psyntax working
-  - apply
-  - eval
+  - append
+  - named let
+  - apply (cons*-ish version)
+  - cond
   - letrec
   - values, call-with-values
 - match (erlang impl)
-- cond
 - stream exception doesn't always kill process that made the stream ??
 - replace STREAM_DONE with {ok, _} or end_of_stream return values.
 - print primitive procedures nicely with their name
