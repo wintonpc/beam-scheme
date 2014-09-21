@@ -1,15 +1,16 @@
-(set! list (lambda L L))
-(set! string (lambda L (list->string L)))
-(set! vector (lambda L (list->vector L)))
-(set! string-append (lambda L (#%string-append L)))
-(set! gensym (lambda L (#%gensym L)))
-(set! generate-temporaries
-  (lambda (xs)
-    (if (null? xs)
-        '()
-        (cons (gensym) (generate-temporaries (cdr xs))))))
+(define-syntax define #%define-transformer)
 
-(set! #%or-transformer
+(define (list . L) L)
+(define (string . L) (list->string L))
+(define (vector . L) (list->vector L))
+(define (string-append . L) (#%string-append L))
+(define (gensym . L) (#%gensym L))
+(define (generate-temporaries xs)
+  (if (null? xs)
+      '()
+      (cons (gensym) (generate-temporaries (cdr xs)))))
+
+(define #%or-transformer
   (lambda (x)
     (if (= (length x) 1)
         #f
@@ -23,7 +24,7 @@
 
 (define-syntax or #%or-transformer)
 
-(set! #%and-transformer
+(define #%and-transformer
   (lambda (x)
     (if (= (length x) 1)
         #t
@@ -37,10 +38,9 @@
 
 (define-syntax and #%and-transformer)
 
-(set! not (lambda (x) (if x #f #t)))
+(define (not x) (if x #f #t))
 
-(set! map
-  (lambda (p ls)
-    (if (null? ls)
-        '()
-        (cons (p (car ls)) (map p (cdr ls))))))
+(define (map p ls)
+  (if (null? ls)
+      '()
+      (cons (p (car ls)) (map p (cdr ls)))))

@@ -2,7 +2,6 @@
   - apply
   - eval
   - letrec
-  - define (scheme impl)
   - values, call-with-values
 - match (erlang impl)
 - cond

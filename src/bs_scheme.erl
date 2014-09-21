@@ -43,8 +43,10 @@ env() ->
     bs_env:set(E, 'pair?', fun pair_p/1),
     bs_env:set(E, 'append-lists', fun lists:append/1),
     bs_env:set(E, 'length', fun erlang:length/1),
+    bs_env:set(E, 'reverse', fun lists:reverse/1),
     bs_env:set(E, '#%gensym', fun(L) -> gensym(L, GensymNumbers) end),
     bs_env:set(E, '#%let-transformer', fun transform_let/1),
+    bs_env:set(E, '#%define-transformer', fun transform_define/1),
     Eval("(define-syntax let #%let-transformer)"),
     bs_env:set(E, 'cwd', fun() -> {ok, Path} = file:get_cwd(), list_to_binary(Path) end),
     bs_env:set(E, 'list-ref', fun(List, N) -> lists:nth(N + 1, List) end),
@@ -194,6 +196,11 @@ transform_let([_, Bindings | Bodies]) ->
     Names = lists:map(fun first/1, Bindings),
     Exprs = lists:map(fun second/1, Bindings),
     [[lambda, Names | Bodies]|Exprs].
+
+transform_define([_, Name, Expr]) when is_atom(Name) ->
+    ['set!', Name, Expr];
+transform_define([_, [Name|Formals] | Bodies]) ->
+    ['set!', Name, [lambda, Formals|Bodies]].
 
 expand(Expr, Keywords, Env) -> expand(Expr, [], Keywords, Env).
 
@@ -475,4 +482,12 @@ map_test_() ->
     [
      ?_assertSchemeEqual("'(1 4 9)", "(map (lambda (x) (* x x)) '(1 2 3))"),
      ?_assertSchemeEqual("'()", "(map (lambda (x) (* x x)) '())")
+    ].
+
+define_test_() ->
+    [
+     ?_assertSchemeEqual("5", "(begin (define x 5) x)"),
+     ?_assertSchemeEqual("5", "(begin (define (five) 5) (five))"),
+     ?_assertSchemeEqual("5", "(begin (define (add1 x) (+ x 1)) (add1 4))"),
+     ?_assertSchemeEqual("'(1 2 3 4)", "(begin (define (zlist . xs) xs) (zlist 1 2 3 4))")
     ].
