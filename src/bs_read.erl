@@ -80,6 +80,10 @@ on_char(Char, CharStream, CurrentToken) ->
             yield_token(CurrentToken),
             yield_token(list_to_binary(read_string_token(CharStream))),
             gen_tokenize(CharStream);
+        $;  ->
+            yield_token(CurrentToken),
+            eat_until_newline(CharStream),
+            gen_tokenize(CharStream);
         $   -> OnWhitespace();
         $\n -> OnWhitespace();
         $\r -> OnWhitespace();
@@ -101,6 +105,15 @@ yield_token([]) -> ok;
 yield_token(List) when is_list(List) ->
     stream:yield(lists:reverse(List));
 yield_token(T) -> stream:yield(T).
+
+eat_until_newline(CharStream) ->
+    StreamDone = stream:done(),
+    case stream:next(CharStream) of
+        StreamDone -> ok;
+        $\n -> ok;
+        _ -> eat_until_newline(CharStream)
+    end.
+    
 
 %%% EVALUATE %%%
 
