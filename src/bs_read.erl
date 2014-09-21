@@ -46,6 +46,8 @@ on_char(Char, CharStream, CurrentToken) ->
     case Char of
         $(  -> Yield([Char]);
         $)  -> Yield([Char]);
+        $[  -> Yield([Char]);
+        $]  -> Yield([Char]);
         $'  -> Yield([Char]);
         $`  -> Yield([Char]);
         $,  ->
@@ -161,16 +163,17 @@ gen_parse(TokenStream, Opener, Add, Acc) ->
     NextExpr = fun() -> gen_parse(TokenStream, none, nil, nil) end,
     TransformNextAndContinue = fun(Transform) -> AddAndContinue(Transform(NextExpr())) end,
     %io:format(user, "gen_parse(~p ..., ~p, ~p, ~p)~n", [Tok, Opener, Add, Acc]),
+    OpenList = fun(Opener2) -> AddAndContinue(gen_parse(TokenStream, Opener2, fun cons/2, [])) end,
+    CloseList = fun(Closer) -> validate_closer(Opener, Closer), reverse_list(Acc, []) end,
+    
     case Tok of
         StreamDone ->
             validate_closer(Opener, none),
             Acc;
-        '(' ->
-            Parsed = gen_parse(TokenStream, '(', fun cons/2, []),
-            AddAndContinue(Parsed);
-        ')' ->
-            validate_closer(Opener, ')'),
-            reverse_list(Acc, []);
+        '(' -> OpenList(Tok);
+        ')' -> CloseList(Tok);
+        '[' -> OpenList(Tok);
+        ']' -> CloseList(Tok);
         '.' ->
             Last = NextExpr(),
             Closer = stream:next(TokenStream),
@@ -206,9 +209,12 @@ yield_expr(Acc) ->
 validate_closer(Opener, Closer) ->
     case {Opener, Closer} of
         {'(', ')'} -> ok;
-        {'(', none} -> error({mismatched, '('});
+        {'[', ']'} -> ok;
         {none, none} -> ok;
+        {'(', none} -> error({mismatched, '('});
+        {'[', none} -> error({mismatched, '['});
         {none, ')'} -> error({mismatched, ')'});
+        {none, ']'} -> error({mismatched, ']'});
         _ -> error({bad_closer, Closer, for, Opener})
     end.
     
@@ -265,9 +271,11 @@ evaluate_test_() ->
 
 parse_test_() ->
     [
+     
      ?_assertEqual(foo, read1("foo")),
      ?_assertEqual([foo, bar], read_all("foo bar")),
      ?_assertEqual([], read1("()")),
+     ?_assertEqual([], read1("[]")),
      ?_assertEqual([foo], read1("(foo)")),
      ?_assertEqual(?FALSE, read1("#f")),
      ?_assertEqual(?TRUE, read1("#t")),
@@ -283,10 +291,18 @@ parse_test_() ->
      ?_assertEqual([1, 3], read1("(1 #;2 3)")),
      ?_assertEqual([1|2], read1("(1 . 2)")),
 
+     ?_assertEqual(ok, error_logger:tty(false)),
      ?_assertError({mismatched, ')'}, read_all(")")),
+     ?_assertError({mismatched, ']'}, read_all("]")),
      ?_assertError({mismatched, ')'}, read_all("x)")),
+     ?_assertError({mismatched, ']'}, read_all("x]")),
      ?_assertError({mismatched, '('}, read_all("(")),
-     ?_assertError({mismatched, '('}, read_all("(x"))
+     ?_assertError({mismatched, '['}, read_all("[")),
+     ?_assertError({mismatched, '('}, read_all("(x")),
+     ?_assertError({mismatched, '['}, read_all("[x")),
+     ?_assertError({bad_closer, ']', for, '('}, read_all("(]")),
+     ?_assertError({bad_closer, ')', for, '['}, read_all("[)")),
+     ?_assertEqual(ok, error_logger:tty(true))
     ].
 
 read_test() ->

@@ -1,6 +1,4 @@
 - get psyntax working
-  - dotted pairs, improper lists
-  - square brackets
   - lambda dot notation
   - hashtables
     - make-hashtable, hashtable-set!, hashtable-ref, hashtable-delete!

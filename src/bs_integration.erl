@@ -75,3 +75,5 @@ comment_test_() ->
      ?_assertEqual(4, eval("(+ 1 #;2 3)"))
     ].
 
+square_brackets_test() ->
+    ?assertEqual([1, 2], eval("'[1 2]")).
