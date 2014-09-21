@@ -1,5 +1,4 @@
 - get psyntax working
-  - map (1-arg only)
   - apply
   - eval
   - letrec

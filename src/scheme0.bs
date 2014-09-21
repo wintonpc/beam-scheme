@@ -38,3 +38,9 @@
 (define-syntax and #%and-transformer)
 
 (set! not (lambda (x) (if x #f #t)))
+
+(set! map
+  (lambda (p ls)
+    (if (null? ls)
+        '()
+        (cons (p (car ls)) (map p (cdr ls))))))

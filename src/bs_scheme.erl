@@ -470,3 +470,9 @@ hashtable_test() ->
          "(hashtable-delete! h 'x)"
          "(assert (eq? 0 (hashtable-ref h 'x 0)))"
          ")").
+
+map_test_() ->
+    [
+     ?_assertSchemeEqual("'(1 4 9)", "(map (lambda (x) (* x x)) '(1 2 3))"),
+     ?_assertSchemeEqual("'()", "(map (lambda (x) (* x x)) '())")
+    ].
