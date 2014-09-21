@@ -36,6 +36,7 @@ env() ->
     bs_env:set(E, 'vector?', fun vector_p/1),
     bs_env:set(E, 'symbol?', fun symbol_p/1),
     bs_env:set(E, 'string?', fun string_p/1),
+    bs_env:set(E, 'procedure?', fun procedure_p/1),
     bs_env:set(E, '#%string-append', fun string_append/1),
     bs_env:set(E, 'pair?', fun pair_p/1),
     bs_env:set(E, 'append-lists', fun lists:append/1),
@@ -102,6 +103,10 @@ pair_p(_) -> ?FALSE.
 
 string_p(X) -> bool(is_binary(X)).
 symbol_p(X) -> bool(is_atom(X)).
+
+procedure_p({closure, _, _, _}) -> ?TRUE;
+procedure_p({primop, _, _}) -> ?TRUE;
+procedure_p(_) -> ?FALSE.
 
 char_e2s(C) -> {char, C}.
 char_s2e({char, C}) -> C.
@@ -392,4 +397,11 @@ substring_test_() ->
      ?_assertSchemeEqual(str(""), "(substring \"\" 0 0)"),
      ?_assertSchemeEqual(str("hel"), "(substring \"hello\" 0 3)"),
      ?_assertSchemeEqual(str("llo"), "(substring \"hello\" 2 5)")
+    ].
+
+procedurep_test_() ->
+    [
+     ?_assertSchemeTrue("(procedure? (lambda (x) x))"),
+     ?_assertSchemeTrue("(procedure? eq?)"),
+     ?_assertSchemeFalse("(procedure? 0)")
     ].
