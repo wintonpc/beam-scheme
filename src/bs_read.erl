@@ -158,32 +158,34 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
                                  _ -> gen_parse(TokenStream, Opener, Yield, Add, Add(X, Acc))
                              end
                      end,
+    NextExpr = fun() -> gen_parse(TokenStream, none, fun identity/1, nil, nil) end,
+    TransformNextAndContinue = fun(Transform) -> AddAndContinue(Transform(NextExpr())) end,
     %io:format(user, "gen_parse(~p ..., ~p, ~p, ~p, ~p)~n", [Tok, Opener, Yield, Add, Acc]),
     case Tok of
         StreamDone ->
             validate_closer(Opener, none),
             Yield(Acc);
         '(' ->
-            Parsed = gen_parse(TokenStream, '(', fun lists:reverse/1, fun cons/2, []),
+            Parsed = gen_parse(TokenStream, '(', fun identity/1, fun cons/2, []),
             AddAndContinue(Parsed);
         ')' ->
             validate_closer(Opener, ')'),
-            Yield(Acc);
+            Yield(reverse_list(Acc, []));
+        '.' ->
+            Last = NextExpr(),
+            Closer = stream:next(TokenStream),
+            validate_closer(Opener, ')'),
+            Yield(reverse_list(Acc, Last));
         '\'' ->
-            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            AddAndContinue([quote, Parsed]);
-        '#' ->
-            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            AddAndContinue(bs_scheme:list_to_vector(Parsed));
+            TransformNextAndContinue(fun(X) -> [quote, X] end);
         '`' ->
-            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            AddAndContinue([quasiquote, Parsed]);
+            TransformNextAndContinue(fun(X) -> [quasiquote, X] end);
         ',' ->
-            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            AddAndContinue([unquote, Parsed]);
+            TransformNextAndContinue(fun(X) -> [unquote, X] end);
         ',@' ->
-            Parsed = gen_parse(TokenStream, none, fun identity/1, nil, nil),
-            AddAndContinue(['unquote-splicing', Parsed]);
+            TransformNextAndContinue(fun(X) -> ['unquote-splicing', X] end);
+        '#' ->
+            TransformNextAndContinue(fun bs_scheme:list_to_vector/1);
         '#;' ->
             _ = gen_parse(TokenStream, none, fun identity/1, nil, nil),
             gen_parse(TokenStream, Opener, Yield, Add, Acc);
@@ -194,6 +196,9 @@ gen_parse(TokenStream, Opener, Yield, Add, Acc) ->
 nothing(_) -> ok.
 identity(X) -> X.
 cons(H, T) -> [H|T].
+
+reverse_list([], Tail) -> Tail;
+reverse_list([A|B], Tail) -> reverse_list(B, [A|Tail]).
 
 yield_expr(Acc) ->
     stream:yield(lists:reverse(Acc)).
@@ -238,7 +243,8 @@ tokenize_test_() ->
     ?_assertEqual(["#", "(", "1", "2", ")"], toks("#(1 2)")),
     ?_assertEqual(["#;", "1"], toks("#;1")),
     ?_assertEqual(["#;", "1"], toks("#; 1")),
-    ?_assertEqual(["#;", "(", "1", "2", ")"], toks("#;(1 2)"))
+    ?_assertEqual(["#;", "(", "1", "2", ")"], toks("#;(1 2)")),
+    ?_assertEqual(["(", "1", ".", "2", ")"], toks("(1 . 2)"))
    ].
 
 evaluate_test_() ->
@@ -275,6 +281,7 @@ parse_test_() ->
      ?_assertEqual([foo], bs_scheme:vector_to_list(read1("#(foo)"))),
      ?_assertEqual([1, 2], bs_scheme:vector_to_list(read1("#(1 2)"))),
      ?_assertEqual([1, 3], read1("(1 #;2 3)")),
+     ?_assertEqual([1|2], read1("(1 . 2)")),
 
      ?_assertError({mismatched, ')'}, read_all(")")),
      ?_assertError({mismatched, ')'}, read_all("x)")),

@@ -1,5 +1,4 @@
 - get psyntax working
-  - comments
   - dotted pairs, improper lists
   - lambda dot notation
   - hashtables

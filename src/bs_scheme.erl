@@ -405,3 +405,15 @@ procedurep_test_() ->
      ?_assertSchemeTrue("(procedure? eq?)"),
      ?_assertSchemeFalse("(procedure? 0)")
     ].
+
+dotted_pair_test_() ->
+    [
+     ?_assertSchemeEqual("(cons 1 2)", "'(1 . 2)"),
+     ?_assertSchemeEqual("'(1 2)", "'(1 . (2))")
+    ].
+
+improper_list_test_() ->
+    [
+     ?_assertSchemeEqual("(cons 1 (cons 2 3))", "'(1 2 . 3)"),
+     ?_assertSchemeEqual("(cons 0 (cons (cons 1 (cons 2 3)) (cons 9 '())))", "'(0 (1 2 . 3) 9)")
+    ].
