@@ -18,6 +18,7 @@ env() ->
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
+    bs_env:set(E, 'void', fun() -> ?VOID end),
     bs_env:set(E, 'null?', fun null_p/1),
     bs_env:set(E, 'list?', fun list_p/1),
     bs_env:set(E, 'list->string', fun list_to_string/1),
@@ -491,7 +492,8 @@ hashtable_test() ->
 map_test_() ->
     [
      ?_assertSchemeEqual("'(1 4 9)", "(map (lambda (x) (* x x)) '(1 2 3))"),
-     ?_assertSchemeEqual("'()", "(map (lambda (x) (* x x)) '())")
+     ?_assertSchemeEqual("'()", "(map (lambda (x) (* x x)) '())"),
+     ?_assertSchemeEqual("'((a 1) (b 2))", "(map list '(a b) '(1 2))")
     ].
 
 define_test_() ->
@@ -527,7 +529,8 @@ letrec_test_() ->
      ?_assertSchemeEqual("15",
                          "(begin"
                          "(letrec ([sum (lambda (x) (if (= x 0) 0 (+ x (sum (- x 1)))))])"
-                         "(sum 5)))")
+                         "(sum 5)))"),
+     ?_assertSchemeEqual("3", "(letrec ([a 1] [b 2]) (void) (+ a b))")
     ].
 
 % append_test_() ->

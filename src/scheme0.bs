@@ -40,10 +40,15 @@
 
 (define (not x) (if x #f #t))
 
-(define (map p ls)
+(define (map1 p ls)
   (if (null? ls)
       '()
       (cons (p (car ls)) (map p (cdr ls)))))
+
+(define (map p . lists)
+  (if (null? (car lists))
+      '()
+      (cons (apply p (map1 car lists)) (apply map (cons p (map1 cdr lists))))))
 
 (define (+ . ns)
   (if (null? ns)
@@ -54,28 +59,19 @@
 
 (define (apply proc args) (#%apply proc args))
 
-#;(define #%letrec-transformer
+(define #%letrec-transformer
   (lambda (stx)
     (apply (lambda (_ bindings . bodies)
              (let ([vars (map car bindings)]
                    [exps (map cadr bindings)])
-               `(let ,(map (lambda (v) `(,v #f)) vars)
-                  foo)))
+               (let ([tmps (generate-temporaries vars)])
+                 `(let ,(map (lambda (v) `(,v #f)) vars)
+                    (let ,(map (lambda (t e) (list t e)) tmps exps)
+                      ,@(map (lambda (v t) `(set! ,v ,t)) vars tmps)
+                      (let () ,@bodies))))))
            stx)))
 
-#;(define #%letrec-transformer
-  (lambda (stx)
-    (apply (lambda (lr bindings . bodies)
-             (list lr bindings bodies))
-stx)))
-
-(define foo
-  (lambda (stx)
-    (apply
-     (lambda (name bindings . bodies) (list name bindings bodies))
-     stx)))
-  
-#;(define-syntax letrec #%letrec-transformer)
+(define-syntax letrec #%letrec-transformer)
 
 #;(define append
   (lambda args
