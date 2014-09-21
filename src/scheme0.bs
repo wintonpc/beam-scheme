@@ -73,7 +73,7 @@
 
 (define-syntax letrec #%letrec-transformer)
 
-#;(define append
+(define append
   (lambda args
     (let f ([ls '()] [args args])
       (if (null? args)

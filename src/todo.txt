@@ -1,5 +1,4 @@
 - get psyntax working
-  - append
   - apply (cons*-ish version)
   - cond
   - values, call-with-values

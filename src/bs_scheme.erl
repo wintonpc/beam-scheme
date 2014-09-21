@@ -528,15 +528,15 @@ letrec_test_() ->
      ?_assertSchemeEqual("3", "(letrec ([a 1] [b 2]) (void) (+ a b))")
     ].
 
-% append_test_() ->
-%     [
-%      ?_assertSchemeEqual("'(a b c)", "(append '(a b c) '())"),
-%      ?_assertSchemeEqual("'(a b c)", "(append '() '(a b c))"),
-%      ?_assertSchemeEqual("'(a b c d)", "(append '(a b) '(c d))"),
-%      ?_assertSchemeEqual("'(a b . c)", "(append '(a b) 'c)")
-%     ].
-
 named_let_test_() ->
     [
      ?_assertSchemeEqual("120", "(let fact ([n 5]) (if (= n 0) 1 (* n (fact (- n 1)))))")
+    ].
+
+append_test_() ->
+    [
+     ?_assertSchemeEqual("'(a b c)", "(append '(a b c) '())"),
+     ?_assertSchemeEqual("'(a b c)", "(append '() '(a b c))"),
+     ?_assertSchemeEqual("'(a b c d)", "(append '(a b) '(c d))"),
+     ?_assertSchemeEqual("'(a b . c)", "(append '(a b) 'c)")
     ].
