@@ -60,15 +60,6 @@ load_test() ->
 let_test() ->
     ?assertEqual(12, eval("(let ((x 5) (y 7)) (+ x y))")).
 
-or_test_() ->
-    [
-     ?_assertEqual(?FALSE, eval("(or)")),
-     ?_assertEqual(?FALSE, eval("(or #f)")),
-     ?_assertEqual(1, eval("(or 1)")),
-     ?_assertEqual(1, eval("(or 1 2)")),
-     ?_assertEqual(5, eval("(or #f #f #f #f 5)"))
-    ].
-
 begin_test() ->
     ?assertEqual(5, eval("(begin 1 2 (+ 1 4))")).
 

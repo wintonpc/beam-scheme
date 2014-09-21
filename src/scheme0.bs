@@ -23,3 +23,18 @@
 
 (define-syntax or #%or-transformer)
 
+(set! #%and-transformer
+  (lambda (x)
+    (if (= (length x) 1)
+        #t
+        (let ((exp0 (car (cdr x)))
+              (exps (cdr (cdr x))))
+          (if (= (length x) 2)
+              exp0
+              (let ((t (gensym 't)))
+                `(let ((,t ,exp0))
+                   (if ,t (and ,@exps) ,t))))))))
+
+(define-syntax and #%and-transformer)
+
+(set! not (lambda (x) (if x #f #t)))

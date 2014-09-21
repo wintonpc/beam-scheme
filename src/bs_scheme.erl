@@ -17,6 +17,7 @@ env() ->
     bs_env:set(E, '=', fun equals/2),
     bs_env:set(E, 'eq?', fun eq_p/2),
     bs_env:set(E, 'equal?', fun equal_p/2),
+    bs_env:set(E, 'string=?', fun equal_p/2),
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
     bs_env:set(E, 'car', fun erlang:hd/1),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
@@ -26,6 +27,7 @@ env() ->
     bs_env:set(E, 'string->list', fun string_to_list/1),
     bs_env:set(E, 'symbol->string', fun symbol_to_string/1),
     bs_env:set(E, 'string->symbol', fun string_to_symbol/1),
+    bs_env:set(E, 'substring', fun substring/3),
     bs_env:set(E, 'list->vector', fun list_to_vector/1),
     bs_env:set(E, 'vector->list', fun vector_to_list/1),
     bs_env:set(E, 'vector-length', fun vector_length/1),
@@ -121,6 +123,9 @@ symbol_to_string(Sym) ->
 
 string_to_symbol(Str) ->
     list_to_atom(string_s2e(Str)).
+
+substring(Str, Start, End) ->
+    string_e2s(string:substr(string_s2e(Str), Start + 1, End - Start)).
 
 list_to_vector(List) ->
     Length = length(List),
@@ -333,3 +338,58 @@ vector_set_test() ->
                        "(set! a (vector-ref v 1))"
                        "(vector-set! v 1 99)"
                        "(list a (vector-ref v 1)))").
+
+or_test_() ->
+    [
+     ?_assertEqual(?FALSE, eval("(or)")),
+     ?_assertEqual(?FALSE, eval("(or #f)")),
+     ?_assertEqual(1, eval("(or 1)")),
+     ?_assertEqual(1, eval("(or 1 2)")),
+     ?_assertEqual(5, eval("(or #f #f #f #f 5)"))
+    ].
+
+and_test_() ->
+    [
+     ?_assertEqual(?TRUE, eval("(and)")),
+     ?_assertEqual(?FALSE, eval("(and #f)")),
+     ?_assertEqual(1, eval("(and 1)")),
+     ?_assertEqual(?FALSE, eval("(and 1 #f)")),
+     ?_assertEqual(2, eval("(and 1 2)"))
+    ].
+
+not_test_() ->
+    [
+     ?_assertEqual(?TRUE, eval("(not #f)")),
+     ?_assertEqual(?FALSE, eval("(not #t)")),
+     ?_assertEqual(?FALSE, eval("(not 1)"))
+    ].
+
+equals_test_() ->
+    [
+     ?_assertSchemeTrue("(= 1 1)"),
+     ?_assertSchemeTrue("(= -1 -1)"),
+     ?_assertSchemeFalse("(= 1 2)")
+    ].
+
+eq_test_() ->
+    [
+     ?_assertSchemeTrue("(eq? 'a 'a)"),
+     ?_assertSchemeFalse("(eq? 'a 'b)"),
+     ?_assertSchemeTrue("(eq? 1 1)"),
+     ?_assertSchemeFalse("(eq? 1 2)"),
+     ?_assertSchemeTrue("(eq? '() '())"),
+     ?_assertSchemeTrue("(eq? '(1 2) '(1 2))")
+    ].
+
+string_equals_test_() ->
+    [
+     ?_assertSchemeTrue("(string=? \"foo\" \"foo\")"),
+     ?_assertSchemeFalse("(string=? \"foo\" \"bar\")")
+    ].
+
+substring_test_() ->
+    [
+     ?_assertSchemeEqual(str(""), "(substring \"\" 0 0)"),
+     ?_assertSchemeEqual(str("hel"), "(substring \"hello\" 0 3)"),
+     ?_assertSchemeEqual(str("llo"), "(substring \"hello\" 2 5)")
+    ].
