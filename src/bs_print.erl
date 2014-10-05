@@ -14,7 +14,7 @@ pretty(Exp) when is_binary(Exp) ->
     "\"" ++ escape_string(binary_to_list(Exp)) ++ "\"";
 
 pretty(Exp) when is_list(Exp) ->
-    "(" ++ pretty_list(Exp) ++ ")";
+    "(" ++ pretty_list(Exp, " ") ++ ")";
 
 pretty({vector, Array}) ->
     "#" ++ pretty(bs_scheme:vector_to_list({vector, Array}));
@@ -36,16 +36,19 @@ pretty(Exp) when is_function(Exp) ->
     {name, Name} = erlang:fun_info(Exp, name),
     lists:flatten(io_lib:format("#<primitive procedure ~s>", [Name]));
 
+pretty({values, Values}) ->
+    pretty_list(Values, "\n");
+
 pretty({primop, _, Fun}) -> lists:flatten(io_lib:format("~p", [Fun]));
 
 pretty(X) -> lists:flatten(io_lib:format("#<native-object ~p>", [X])).
 
-pretty_list([]) -> "";
-pretty_list([H]) -> pretty(H);
-pretty_list([H|T]) when not is_list(T) ->
+pretty_list([], _) -> "";
+pretty_list([H], _) -> pretty(H);
+pretty_list([H|T], _) when not is_list(T) ->
     pretty(H) ++ " . " ++ pretty(T);
-pretty_list([H|T]) ->
-    pretty(H) ++ " " ++ pretty_list(T).
+pretty_list([H|T], Sep) ->
+    pretty(H) ++ Sep ++ pretty_list(T, Sep).
 
 escape_string(S) -> escape_string(S, []).
 escape_string(S, Acc) ->
@@ -72,6 +75,7 @@ pretty_test_() ->
      ?_assertEqual("()", pretty([])),
      ?_assertEqual("(foo)", pretty([foo])),
      ?_assertEqual("(foo bar)", pretty([foo, bar])),
+     ?_assertEqual("foo\nbar", pretty({values, [foo, bar]})),
      ?_assertEqual("(foo . bar)", pretty([foo|bar])),
      ?_assertEqual("(foo bar . baz)", pretty([foo,bar|baz])),
      ?_assertEqual("\"woman\"", pretty(<<"woman">>)),

@@ -5,6 +5,10 @@
 (define (vector . L) (list->vector L))
 (define (string-append . L) (#%string-append L))
 (define (gensym . L) (#%gensym L))
+(define (values . L) (make-values L))
+(define (call-with-values producer consumer)
+  (apply consumer (values->list (producer))))
+
 (define (generate-temporaries xs)
   (if (null? xs)
       '()
@@ -82,3 +86,9 @@
             (if (null? ls)
                 (f (car args) (cdr args))
                 (cons (car ls) (g (cdr ls)))))))))
+
+;; (define (cons* . args)
+;;   (cond
+;;    [(null? args) '()]
+;;    [(null? (cdr args)) (car args)]
+;;    [else (cons (car args) (apply cons* (cdr args)))]))

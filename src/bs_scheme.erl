@@ -57,6 +57,8 @@ env() ->
     bs_env:set(E, 'assert-false', fun assert_false/1),
     bs_env:set(E, 'expand', fun(Expr, Keywords) -> expand(Expr, Keywords, E) end),
     bs_env:set(E, 'eval', fun(Expr) -> bs_compile:eval(Expr, E) end),
+    bs_env:set(E, 'make-values', fun make_values/1),
+    bs_env:set(E, 'values->list', fun values_to_list/1),
 
     load("/home/pwinton/git/bs/src/scheme0.bs", E),
 
@@ -190,6 +192,12 @@ hashtable_ref({hashtable, Box}, K, Default) ->
 hashtable_delete({hashtable, Box}, K) ->
     box:set(Box, gb_trees:delete_any(K, box:get(Box))),
     ?VOID.
+
+make_values(Values) ->
+    {values, Values}.
+
+values_to_list({values, Values}) ->
+    Values.    
 
 first([X|_]) -> X.
 second([_, X|_]) -> X.
@@ -539,4 +547,9 @@ append_test_() ->
      ?_assertSchemeEqual("'(a b c)", "(append '() '(a b c))"),
      ?_assertSchemeEqual("'(a b c d)", "(append '(a b) '(c d))"),
      ?_assertSchemeEqual("'(a b . c)", "(append '(a b) 'c)")
+    ].
+
+values_test_() ->
+    [
+     ?_assertSchemeEqual("'(1 2 3)", "(call-with-values (lambda () (values 1 2 3)) list)")
     ].
