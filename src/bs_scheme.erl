@@ -1,8 +1,9 @@
 -module(bs_scheme).
 -export([env/0]).
--include("bs_const.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
+-include("bs_const.hrl").
+
 
 env() ->
     E = bs_env:empty(),
@@ -16,11 +17,19 @@ env() ->
     bs_env:set(E, 'equal?', fun equal_p/2),
     bs_env:set(E, 'string=?', fun equal_p/2),
     bs_env:set(E, 'cons', fun(A, B) -> [A|B] end),
+    bs_env:set(E, 'mcons', fun mcons/2),
     bs_env:set(E, 'car', fun erlang:hd/1),
+    bs_env:set(E, 'mcar', fun mcar/1),
+    bs_env:set(E, 'set-mcar!', fun set_mcar/2),
+    bs_env:set(E, 'set-mcdr!', fun set_mcdr/2),
     bs_env:set(E, 'cdr', fun erlang:tl/1),
+    bs_env:set(E, 'mcdr', fun mcdr/1),
+    bs_env:set(E, 'list->mlist', fun list_to_mlist/1),
+    bs_env:set(E, 'mlist->list', fun mlist_to_list/1),
     bs_env:set(E, 'void', fun() -> ?VOID end),
     bs_env:set(E, 'null?', fun null_p/1),
     bs_env:set(E, 'list?', fun list_p/1),
+    bs_env:set(E, 'mlist?', fun mlist_p/1),
     bs_env:set(E, 'list->string', fun list_to_string/1),
     bs_env:set(E, 'string->list', fun string_to_list/1),
     bs_env:set(E, 'symbol->string', fun symbol_to_string/1),
@@ -98,9 +107,25 @@ equal_p(A, B) -> bool_e2s(equal_p2(A, B)).
 
 equal_p2({vector, A}, {vector, B}) ->
     equal_p2(vector_to_list({vector, A}), vector_to_list({vector, B}));
-equal_p2([A|X], [B|Y]) ->
-    equal_p2(A, B) andalso equal_p2(X, Y);
+equal_p2([A|X], [B|Y]) -> pair_equal_p(A, X, B, Y);
+equal_p2({pair, ABox, XBox}, [B|Y]) -> pair_equal_p(box:get(ABox), box:get(XBox), B, Y);
+equal_p2([A|X], {pair, BBox, YBox}) -> pair_equal_p(A, X, box:get(BBox), box:get(YBox));
+equal_p2({pair, ABox, XBox}, {pair, BBox, YBox}) ->
+    pair_equal_p(box:get(ABox), box:get(XBox), box:get(BBox), box:get(YBox));
 equal_p2(A, B) -> A == B.
+
+pair_equal_p(A, X, B, Y) ->
+    equal_p2(A, B) andalso equal_p2(X, Y).
+
+mcons(A, B) -> {pair, box:make(A), box:make(B)}.
+mcar({pair, ABox, _}) -> box:get(ABox).
+mcdr({pair, _, BBox}) -> box:get(BBox).
+set_mcar({pair, ABox, _}, Val) ->
+    box:set(ABox, Val),
+    ?VOID.
+set_mcdr({pair, _, BBox}, Val) ->
+    box:set(BBox, Val),
+    ?VOID.
 
 null_p([]) -> ?TRUE;
 null_p(_) -> ?FALSE.
@@ -108,6 +133,25 @@ null_p(_) -> ?FALSE.
 list_p([]) -> ?TRUE;
 list_p([_|X]) -> list_p(X);
 list_p(_) -> ?FALSE.
+
+mlist_p([]) -> ?TRUE;
+mlist_p({pair, _, TBox}) -> mlist_p(box:get(TBox));
+mlist_p(_) -> ?FALSE.
+
+list_to_mlist([]) -> [];
+list_to_mlist([H|T]) when is_list(T) ->
+    mcons(H, list_to_mlist(T));
+list_to_mlist([H|T]) ->
+    mcons(H, T).
+
+mlist_to_list([]) -> [];
+mlist_to_list({pair, HBox, TBox}) ->
+    H = box:get(HBox),
+    T = box:get(TBox),
+    case T of
+        {pair, _, _} -> [H|mlist_to_list(T)];
+        _ -> [H|T]
+    end.
 
 pair_p([_|_]) -> ?TRUE;
 pair_p(_) -> ?FALSE.
@@ -552,4 +596,26 @@ append_test_() ->
 values_test_() ->
     [
      ?_assertSchemeEqual("'(1 2 3)", "(call-with-values (lambda () (values 1 2 3)) list)")
+    ].
+
+mutable_list_test_() ->
+    [
+     ?_assertSchemeEqual("'(1 . 2)", "(mcons 1 2)"),
+     ?_assertSchemeEqual("1", "(mcar (mcons 1 2))"),
+     ?_assertSchemeEqual("2", "(mcdr (mcons 1 2))"),
+     ?_assertSchemeEqual("'(1 2 3)", "(mlist 1 2 3)"),
+     ?_assertSchemeEqual("'(1 2 3)", "(list->mlist '(1 2 3))"),
+     ?_assertSchemeTrue("(mlist? (list->mlist '(1 2 3)))"),
+     ?_assertSchemeEqual("'(1 2 3)", "(mlist->list (mlist 1 2 3))"),
+     ?_assertSchemeTrue("(list? (mlist->list (mlist 1 2 3)))")
+    ].
+
+set_mcar_test_() ->
+    [
+     ?_assertSchemeEqual("7", "(begin (define m (mcons 1 2)) (set-mcar! m 7) (mcar m))")
+    ].
+
+set_mcdr_test_() ->
+    [
+     ?_assertSchemeEqual("7", "(begin (define m (mcons 1 2)) (set-mcdr! m 7) (mcdr m))")
     ].

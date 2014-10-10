@@ -15,6 +15,8 @@ pretty(Exp) when is_binary(Exp) ->
 
 pretty(Exp) when is_list(Exp) ->
     "(" ++ pretty_list(Exp, " ") ++ ")";
+pretty({pair, A, B}) ->
+    "(" ++ pretty_list({pair, A, B}, " ") ++ ")";
 
 pretty({vector, Array}) ->
     "#" ++ pretty(bs_scheme:vector_to_list({vector, Array}));
@@ -45,10 +47,24 @@ pretty(X) -> lists:flatten(io_lib:format("#<native-object ~p>", [X])).
 
 pretty_list([], _) -> "";
 pretty_list([H], _) -> pretty(H);
-pretty_list([H|T], _) when not is_list(T) ->
-    pretty(H) ++ " . " ++ pretty(T);
-pretty_list([H|T], Sep) ->
+pretty_list([H|T], Sep) when is_list(T) ->
+    pretty_list_proper(H, T, Sep);
+pretty_list([H|T], _) ->
+    pretty_list_improper(H, T);
+pretty_list({pair, HBox, TBox}, Sep) ->
+    H = box:get(HBox),
+    T = box:get(TBox),
+    case T of
+        [] -> pretty(H);
+        {pair, _, _} ->  pretty_list_proper(H, T, Sep);
+        _ -> pretty_list_improper(H, T)
+    end.
+
+pretty_list_proper(H, T, Sep) ->
     pretty(H) ++ Sep ++ pretty_list(T, Sep).
+
+pretty_list_improper(H, T) ->
+    pretty(H) ++ " . " ++ pretty(T).
 
 escape_string(S) -> escape_string(S, []).
 escape_string(S, Acc) ->
@@ -62,6 +78,9 @@ escape_string(S, Acc) ->
             end
     end.
             
+
+pp(X) ->
+    pretty(bs_scheme:eval(X)).
 
 pretty_test_() ->
     [
@@ -81,5 +100,8 @@ pretty_test_() ->
      ?_assertEqual("\"woman\"", pretty(<<"woman">>)),
      ?_assertEqual("\"hello \\\\ \\\"hi!\\\"\"", pretty(<<"hello \\ \"hi!\"">>)),
      ?_assertEqual("#(1 foo \"say \\\"hello\\\"\")",
-                   pretty(bs_scheme:list_to_vector([1, foo, <<"say \"hello\"">>])))
+                   pretty(bs_scheme:list_to_vector([1, foo, <<"say \"hello\"">>]))),
+     ?_assertEqual("(1 . 2)", pp("(mcons 1 2)")),
+     ?_assertEqual("(1 2 3)", pp("(mlist 1 2 3)")),
+     ?_assertEqual("(1 2 . 3)", pp("(mcons 1 (mcons 2 3))"))
     ].

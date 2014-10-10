@@ -1,4 +1,5 @@
 - get psyntax working
+  - define-syntax, let-syntax, letrec-syntax, syntax-error
   - apply (cons*-ish version)
 - match (erlang impl)
 - stream exception doesn't always kill process that made the stream ??

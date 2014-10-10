@@ -1,6 +1,6 @@
 -module(box).
 -include_lib("eunit/include/eunit.hrl").
--export([make/1, set/2, get/1, run/1]).
+-export([make/1, set/2, get/1, run/1, is_box/1, unbox/1]).
 
 make(Value) ->
     {box, spawn(box, run, [Value])}.
@@ -25,8 +25,20 @@ get({box, Pid}) ->
             Value
     end.
 
-box_test() ->
+is_box({box, _}) -> true;
+is_box(_) -> false.
+
+unbox({box, Pid}) -> box:get({box, Pid});
+unbox(X) -> X.
+
+box_test_() ->
     Box = box:make(1),
-    ?assertEqual(1, box:get(Box)),
-    ?assertEqual(ok, box:set(Box, 2)),
-    ?assertEqual(2, box:get(Box)).
+    [
+     ?_assertEqual(1, box:get(Box)),
+     ?_assertEqual(ok, box:set(Box, 2)),
+     ?_assertEqual(2, box:get(Box)),
+     ?_assertEqual(true, box:is_box(Box)),
+     ?_assertEqual(false, box:is_box(1)),
+     ?_assertEqual(2, box:unbox(Box)),
+     ?_assertEqual(3, box:unbox(3))
+    ].

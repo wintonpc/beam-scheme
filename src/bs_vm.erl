@@ -1,8 +1,9 @@
 -module(bs_vm).
--include("bs_const.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 -export([vm/2]).
+-include("bs_const.hrl").
+
 
 vm(X, Env) ->
     %io:format(user, "Running: ~p~n", [X]),

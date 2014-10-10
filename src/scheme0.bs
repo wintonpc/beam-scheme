@@ -1,6 +1,7 @@
 (define-syntax define #%define-transformer)
 
 (define (list . L) L)
+(define (mlist . L) (list->mlist L))
 (define (string . L) (list->string L))
 (define (vector . L) (list->vector L))
 (define (string-append . L) (#%string-append L))
@@ -8,6 +9,8 @@
 (define (values . L) (make-values L))
 (define (call-with-values producer consumer)
   (apply consumer (values->list (producer))))
+
+(define (cadr p) (car (cdr p)))
 
 (define (generate-temporaries xs)
   (if (null? xs)
@@ -92,3 +95,14 @@
 ;;    [(null? args) '()]
 ;;    [(null? (cdr args)) (car args)]
 ;;    [else (cons (car args) (apply cons* (cdr args)))]))
+
+(define-syntax delay
+  (lambda (stx)
+    `(lambda () ,(cadr stx))))
+
+(define (force promise) (promise))
+
+(define (take-stream n s)
+  (if (= n 0)
+      '()
+      (cons (car s) (take-stream (- n 1) (force (cdr s))))))
