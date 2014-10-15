@@ -10,6 +10,31 @@
 (define (call-with-values producer consumer)
   (apply consumer (values->list (producer))))
 
+(define (mreverse ls)
+  (mreverse2 ls '()))
+
+(define (mreverse2 ls acc)
+  (if (null? ls)
+      acc
+      (mreverse2 (mcdr ls) (mcons (mcar ls) acc))))
+
+(define (mlength ls)
+  (mlength2 ls 0))
+
+(define (mlength2 ls acc)
+  (if (null? ls)
+      acc
+      (mlength2 (mcdr ls) (+ acc 1))))
+
+(define (mlist->string ls)
+  (list->string (mlist->list ls)))
+
+(define (mlist->vector ls)
+  (list->vector (mlist->list ls)))
+
+(define (vector->mlist v)
+  (list->mlist (vector->list v)))
+
 (define (cadr p) (car (cdr p)))
 
 (define (generate-temporaries xs)
@@ -89,6 +114,16 @@
             (if (null? ls)
                 (f (car args) (cdr args))
                 (cons (car ls) (g (cdr ls)))))))))
+
+(define mappend
+  (lambda args
+    (let f ([ls '()] [args args])
+      (if (null? args)
+          ls
+          (let g ([ls ls])
+            (if (null? ls)
+                (f (mcar args) (mcdr args))
+                (mcons (mcar ls) (g (mcdr ls)))))))))
 
 ;; (define (cons* . args)
 ;;   (cond

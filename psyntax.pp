@@ -1,3 +1,16 @@
+(define cons mcons)
+(define car mcar)
+(define cdr mcdr)
+(define list mlist)
+(define set-car! set-mcar!)
+(define set-cdr! set-mcdr!)
+(define reverse mreverse)
+(define length mlength)
+(define list->string mlist->string)
+(define list->vector mlist->vector)
+(define vector->list vector->mlist)
+(define append mappend)
+
 ;;; Needed non-standard procs
 (define andmap
   (lambda (f first . rest)
